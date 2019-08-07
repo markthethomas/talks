@@ -1,16 +1,146 @@
-
-Building Systems Using Active-Active Architectural Patterns
-15:04 2 Jan 2006
+Active-Active
+Building a Multi-leader Application Architecture
+9 Aug 2019
 Tags: distributed-systems, go, aws
 
 Mark Thomas
-Senior Software Engineer, Floqast
+Senior Software Engineer, Oberon, FloQast
 markt@ifelse.io
 https://ifelse.io
 @markthethomas
 
+* Agenda
+- overview
+- sample application using active-active on AWS
+- code/infra walkthrough(s)
+
+* Active...active?
+
+    systems that support multiple sources of truth and
+
+as opposed to *active-passive*:
+
+- primary/secondary
+- all writes go through primary, replicated to secondary/ies
+
+- active-active definition not universally agreed on
+
 * 
+.image ./images/leader-based-replication.png _ 980
+
 * 
+.image ./images/sync-async-leader-replication.png _ 980
+
 * 
+.image ./images/multi-leader.png _ 900
+
+* What's it good for? 
+
+use-cases:
+
+- mutli-datacenter operation
+- maximum availablity/survivability
+- offline-clients
+- user-localized compute
+
+* The bad...
+
+- hard/complex to set up
+- conflict resolution is hard
+- "easy" things can be hard: autoincrementing keys, constraints, &c.
+
+: most databases don't support this out of the box
+: conflict resolution can be really hard to implement correctly because its a fundamental distributed systems problem of consensus
+
+* ...the "just how it is"...
+- async replication
+- eventually-globally consistent
+
+: speed of light is a real factor; replication takes some time
+: a consistent view of data globally will eventually be possible after replication across all nodes
+
+* ...and the good!
+
+- multi-datacenter
+
+which means:
+
+- performance
+- network resilience
+- fault-tolerance
+- right-sizing
+- recovery time
+
+: lower latency for reads; read/write load distributed across nodes
+: network: writes through many network paths instead of just one
+: AZ/DC outage survivability
+: possible to size capacity at multiple points instead of just one; aka maybe one region gets hot, they don't all have to
+: recovery time: potentially near-immediate fail-over w/ minimal intervention
+
+* Sounds cool! Let's build...
+
+* FloQars
+
 * 
-* 
+.image ./images/floqars-logo.png _ 900
+
+* FloQars
+Main goal: uber/lyft killer, global domination, etc.
+
+requirements:
+
+1. low-latency for regional users around the world
+2. read/write load varies by region
+3. high fault-tolerance
+4. help accounts close faster by enabling them to work while commuting
+5. ideally Excel-based configuration
+
+* What to do?
+
+- DNS: Route53 w/ latency-based routing 
+- regional health checks: lambda + Route53
+- serving: API gateway backed by lambdas running Go 
+- database: dynamoDB using global tables
+
+which gives us...
+
+- auto-failover at the network level
+- automatic replication catchup after failure resolves
+- low latency due to geo-routing 
+- high throughput thanks to Dynamo + Go + Lambda
+
+* Architecture overview
+
+* DynamoDB
+- wide-column NoSQL store; distributed hash table (DHT)
+- tunable read/write consistency (more consistency == more $)
+- Cassandra-ish (Cassandra creators ∪ Dynamo creators)
+- streams
+- global tables
+- secondary indexes
+
+* Lambda
+- lightweight compute
+- integrates with API gateway
+- also used as API authorizer
+
+* API Gateway
+- Product and Pattern
+- 
+
+* Go
+- statically-typed
+- memory-safety
+- gargbage-collected
+- structural typing
+- CSP-style concurrency
+.link https://golang.org/ language site
+
+.image ./images/Go-Logo_Blue.png _ 300
+
+* Credits/Images/etc.
+.link https://amzn.to/2YPrSt7 Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems
+.link https://www.mongodb.com/blog/post/active-active-application-architectures-with-mongodb Active-Active Application Architectures with MongoDB
+
+.link https://read.acloud.guru/building-a-serverless-multi-region-active-active-backend-36f28bed4ecf Build a serverless multi-region, active-active backend solution in an hour
+.link https://read.acloud.guru/why-and-how-do-we-build-a-multi-region-active-active-architecture-6d81acb7d208 How to build a multi-region active-active architecture on AWS
