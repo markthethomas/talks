@@ -5,9 +5,6 @@ provider:
   runtime: go1.x
   profile: personal
   region: ${opt:region}
-  versionFunctions: false
-  memorySize: 1024
-  timeout: 30
   endpointType: regional
 package:
  exclude:

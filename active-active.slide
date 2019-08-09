@@ -15,55 +15,86 @@ https://ifelse.io
 - code/infra walkthrough(s)
 - (hopefully functioning) demo
 
-* Replication
-- why?
-- systems fail, fork, etc.
-- idea: add moar computers!!!
-- better idea: consensus!
+* Let's talk about replication
 
-.link https://raft.github.io/ raft protocol
+* not *that* replication
+
+.image ./images/armadillo.gif _ 500
+
+* Database replication
+
+
+* 
+The major difference between a thing that might go wrong and a thing that cannot possibly go wrong is that when a thing that cannot possibly go wrong goes wrong it usually turns out to be impossible to get at or repair. 
+
+Douglas Adams, _Mostly_ _Harmless_ (1992)
+
+* Replication
+
+"getting the same data elsewhere"
+
+1. latency: close to users
+2. availablity: work when things go wrong
+3. throughput: do more stuff
+
+: talk a little bit about why its important
 
 
 * Active...active?
 
-    systems that support authortitative writes to multiple nodes; no single primary
+    systems that support authortitative writes to multiple nodes
+
+also "multi-leader"
 
 as opposed to *active-passive*:
 
 - primary/secondary
 - all writes go through primary, replicated to secondary/ies
-
 - active-active definition not universally agreed on
 
+: active/active is one type of replication
 
 * Some examples...
 
-* 
+* leader-based
 .image ./images/leader-based-replication.png _ 980
 
-* 
+* leader-based (sync/async)
 .image ./images/sync-async-leader-replication.png _ 980
 
-* 
-.image ./images/multi-leader.png _ 900
+* multi-leader
+.image ./images/multi-leader.png _ 1000
 
 * What's it good for? 
-
-use-cases:
 
 - mutli-datacenter operation
 - maximum availablity/survivability
 - offline-clients
 - user-localized compute
 
+: talk about some use cases and why its not for everyone
+
+* Multi-leader Tradeoffs
+
 * The bad...
 
-- hard/complex to set up
+- hard/complex to set up for most databases
 - conflict resolution is hard
 - "easy" things can be hard: autoincrementing keys, constraints, &c.
 
 : most databases don't support this out of the box because its hard and not something everyone needs
 : conflict resolution can be really hard to implement correctly because its a fundamental distributed systems problem of consensus
+
+* conflict resolution
+.image ./images/failed-conflict-resolution.png _ 950
+
+* GitHub incident 09/2012
+
+Discarding writes is especially dangerous if other storage systems outside of the database need to be coordinated with the database contents. For example, in one incident at GitHub , an out-of-date MySQL follower was promoted to leader. The database used an autoincrementing counter to assign primary keys to new rows but because the new leader’s counter lagged behind the old leader’s, it reused some primary keys that were previously assigned by the old leader. These primary keys were also used in a Redis store, so the reuse of primary keys resulted in inconsistency between MySQL and Redis, which caused some private data to be disclosed to the wrong users.
+
+(from Designing Data-Intensive Applications)
+
+.link https://github.blog/2012-09-14-github-availability-this-week/ incident summary
 
 * ...the "just how it is"...
 - async replication
@@ -74,7 +105,8 @@ use-cases:
 
 * ...and the good!
 
-- multi-datacenter
+- multi-datacenter/device
+- multiple primaries
 
 which means:
 
@@ -122,20 +154,20 @@ Use DynamoDB, API Gateway, Lambda, Go, and Route 53 to create a multi-master, mu
 which gives us...
 
 - auto-failover at the network level
-- automatic replication catchup after failure resolves
-- low latency due to geo-routing 
-- high throughput thanks to Dynamo + Go + Lambda
+- automatic replication catchup after outage resolution
+- lower latency due to geo-routing & data ubiquity
+- multi-region protection for disaster recovery
 
 * Architecture component overview
 
 * DynamoDB
 - wide-column NoSQL store; distributed hash table ([[https://en.wikipedia.org/wiki/Distributed_hash_table][DHT]])
 - tunable read/write consistency (more consistency == more $)
-- Cassandra-ish: [[https://en.wikipedia.org/wiki/Apache_Cassandra][Cassandra]] creators ∪ Dynamo creators (_Avinash_ _Lakshman_)
-- global tables
-- secondary indexes: 
+- [[https://en.wikipedia.org/wiki/Apache_Cassandra][Cassandra]]-ish & same parents (_Avinash_ _Lakshman_)
+- global tables: replciated tables
+- secondary indexes
 - streams
-- DAX for even lower latency
+- DAX (dynamo DB accelerator) for even lower latency
 
 dynamoDB on the DB spectrum
 
@@ -181,7 +213,7 @@ dynamoDB on the DB spectrum
 .image ./images/multi-region-arch.png
 
 * Creating Our API Gateway + Lambdas...
-
+.link https://serverless.com/ serverless framework
 .code ./code/active-active/serverless.yml
 
 * Creating API Gateway...
