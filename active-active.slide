@@ -1,5 +1,5 @@
 Active-Active
-Building a Multi-leader Application Architecture
+Using Multi-leader Application Architecture for Fun and Profit
 9 Aug 2019
 Tags: distributed-systems, go, aws
 
@@ -10,13 +10,20 @@ https://ifelse.io
 @markthethomas
 
 * Agenda
-- overview
+- intro
 - sample application using active-active on AWS
 - code/infra walkthrough(s)
+- (hopefully functioning) demo
+
+* Replication
+- why?
+- systems fail, fork, etc.
+- durability of data
+
 
 * Active...active?
 
-    systems that support multiple sources of truth and
+    systems that support authortitative writes to multiple nodes; no single primary
 
 as opposed to *active-passive*:
 
@@ -24,6 +31,9 @@ as opposed to *active-passive*:
 - all writes go through primary, replicated to secondary/ies
 
 - active-active definition not universally agreed on
+
+
+* Some examples...
 
 * 
 .image ./images/leader-based-replication.png _ 980
@@ -49,7 +59,7 @@ use-cases:
 - conflict resolution is hard
 - "easy" things can be hard: autoincrementing keys, constraints, &c.
 
-: most databases don't support this out of the box
+: most databases don't support this out of the box because its hard and not something everyone needs
 : conflict resolution can be really hard to implement correctly because its a fundamental distributed systems problem of consensus
 
 * ...the "just how it is"...
@@ -95,12 +105,16 @@ requirements:
 4. help accounts close faster by enabling them to work while commuting
 5. ideally Excel-based configuration
 
-* What to do?
+* Possible solution
+Use DynamoDB, API Gateway, Lambda, Go, and Route 53 to create a multi-master, mutli-region application.
 
-- DNS: Route53 w/ latency-based routing 
-- regional health checks: lambda + Route53
-- serving: API gateway backed by lambdas running Go 
-- database: dynamoDB using global tables
+.image ./images/multi-region-arch.png
+
+* System components
+
+- DNS + failover: *Route53* w/ latency-based routing & health check
+- serving layer: *API* *gateway* backed by *lambdas* running Go 
+- data layer: *dynamoDB* using global tables
 
 which gives us...
 
@@ -109,24 +123,46 @@ which gives us...
 - low latency due to geo-routing 
 - high throughput thanks to Dynamo + Go + Lambda
 
-* Architecture overview
+* Architecture component overview
 
 * DynamoDB
-- wide-column NoSQL store; distributed hash table (DHT)
+- wide-column NoSQL store; distributed hash table ([[https://en.wikipedia.org/wiki/Distributed_hash_table][DHT]])
 - tunable read/write consistency (more consistency == more $)
-- Cassandra-ish (Cassandra creators ∪ Dynamo creators)
-- streams
+- Cassandra-ish: [[https://en.wikipedia.org/wiki/Apache_Cassandra][Cassandra]] creators ∪ Dynamo creators (_Avinash_ _Lakshman_)
 - global tables
-- secondary indexes
+- secondary indexes: 
+- streams
+- DAX for even lower latency
+
+dynamoDB on the DB spectrum
+
+    rocksDB -> redis -> dynamo -> mongo -> postgres
+    <--------------------------------------------->
+    k/v        k/v++      DHT       DHT++      RDMS
+
+: dynamo is great for high-read scenarios where you really understand your access patterns. 
+: redis -> dynamo -> mongo -> postgres
+: you can build basically anything w/ a DHT - but you have to do more work to get certain things
 
 * Lambda
 - lightweight compute
 - integrates with API gateway
-- also used as API authorizer
+- can also used as API authorizer
 
 * API Gateway
 - Product and Pattern
-- 
+- Connect X to Y
+- Where *Y* is { lambda, ec2, kinesis, aws endpoints, ecs, dynamoDB }
+- more: throttling, API keys, doc gen, SDK gen
+: why use this? easy regional API deployment
+
+* Route 53
+- highly-available DNS service
+- health-checks & types of routing
+- latency-based vs. geo-based
+
+: We'll use Route 53 to handle shifting our traffic around at the DNS level. Each FloQars region will reply with a health check and R53 will use that for routing decisions
+: Route53 has a "100%" SLA, so in theory its the best place to shift traffic around failing systems
 
 * Go
 - statically-typed
@@ -138,9 +174,49 @@ which gives us...
 
 .image ./images/Go-Logo_Blue.png _ 300
 
+* Review...
+.image ./images/multi-region-arch.png
+
+* Creating Our API Gateway + Lambdas...
+
+.code ./code/active-active/serverless.yml
+
+* Creating API Gateway...
+- regional endpoints vs. edge-optimized
+- lambda proxy integration
+- custom domain name
+
+.link https://latency.apex.sh/?url=https%3A%2F%2Fapi.floqars.com%2Fhealthy&compare= Let's check the latency!
+
+: go to the console
+
+* Creating the Health check lambda
+.code -edit -numbers ./code/active-active/healthcheck.go /1 OMIT/,/1 OMIT/
+
+* Health check lambda (cont.)
+.code -edit -numbers ./code/active-active/healthcheck.go /2 OMIT/,/2 OMIT/
+
+* Health check lambda (cont.)
+.code -edit -numbers ./code/active-active/healthcheck.go /3 OMIT/,/3 OMIT/
+
+* Setting up the health checks...
+
+: go to the console
+
+* Failing over!
+: go to the console
+: update the region health
+: keep using the API to create records
+
+
+* Recap
+.image ./images/multi-region-arch.png
+
+* Any questions?
+
 * Credits/Images/etc.
 .link https://amzn.to/2YPrSt7 Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems
+.link https://read.acloud.guru/location-based-search-results-with-dynamodb-and-geohash-267727e5d54f Location-based search results with DynamoDB and Geohash
 .link https://www.mongodb.com/blog/post/active-active-application-architectures-with-mongodb Active-Active Application Architectures with MongoDB
-
 .link https://read.acloud.guru/building-a-serverless-multi-region-active-active-backend-36f28bed4ecf Build a serverless multi-region, active-active backend solution in an hour
 .link https://read.acloud.guru/why-and-how-do-we-build-a-multi-region-active-active-architecture-6d81acb7d208 How to build a multi-region active-active architecture on AWS
