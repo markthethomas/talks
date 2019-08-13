@@ -23,15 +23,19 @@ https://ifelse.io
 
 * Database replication
 
-
 * 
 The major difference between a thing that might go wrong and a thing that cannot possibly go wrong is that when a thing that cannot possibly go wrong goes wrong it usually turns out to be impossible to get at or repair. 
 
 Douglas Adams, _Mostly_ _Harmless_ (1992)
 
+* ...oops
+.image ./images/elmo-fire.gif _ 700
+
 * Replication
 
 "getting the same data elsewhere"
+
+why? 
 
 1. latency: close to users
 2. availablity: work when things go wrong
@@ -88,6 +92,9 @@ as opposed to *active-passive*:
 * conflict resolution
 .image ./images/failed-conflict-resolution.png _ 950
 
+* 
+.image ./images/elmo-fire.gif _ 700
+
 * GitHub incident 09/2012
 
 Discarding writes is especially dangerous if other storage systems outside of the database need to be coordinated with the database contents. For example, in one incident at GitHub , an out-of-date MySQL follower was promoted to leader. The database used an autoincrementing counter to assign primary keys to new rows but because the new leader’s counter lagged behind the old leader’s, it reused some primary keys that were previously assigned by the old leader. These primary keys were also used in a Redis store, so the reuse of primary keys resulted in inconsistency between MySQL and Redis, which caused some private data to be disclosed to the wrong users.
@@ -95,6 +102,9 @@ Discarding writes is especially dangerous if other storage systems outside of th
 (from Designing Data-Intensive Applications)
 
 .link https://github.blog/2012-09-14-github-availability-this-week/ incident summary
+
+* 
+.image ./images/elmo-fire.gif _ 700
 
 * ...the "just how it is"...
 - async replication
