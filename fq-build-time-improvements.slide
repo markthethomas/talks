@@ -1,0 +1,94 @@
+Improving Build Times in FQ Team Environments
+4 Oct 2019
+Tags: build, ops
+
+Mark Thomas
+Senior Software Engineer | Technical Lead (Oberon) FloQast
+markt@ifelse.io
+https://ifelse.io
+@markthethomas
+
+* Agenda
+- Background
+- Current Build Overview
+- Results
+- Quick fixes
+- Questions?
+
+* Background
+- So...Jenkins
+
+.image ./images/jenkins-meme.jpg 
+
+* Motivation
+- Builds are too slow for Oberon
+- Limits builds in tight scenarios
+- Waste of time (which you can't get back)
+- Waste of money (which you don't want to spend)
+- "Death by a thousand cuts"
+
+: Primarily motivated by a sprint where we tried to ship ~3 releases at the end of the sprint and we had real issues waiting for anything
+: who wants to wait for things?!
+
+* Current Build Overview (~15+ min)
+- checkout code
+- set node version up
+- install yarn
+- update build.json
+- snyk install & check
+- create Yum slug & ship to yum repo
+- call some build scripts (typescript, lambdas)
+(...other stuff in between)
+
+* Current Deploy Overview (~15+ min)
+- validate environment (param store etc.)
+- build docker image (???)
+- re-install yum repo
+- push tag to ECR
+- push `:latest` tag to ECR
+- ECS rolling deploy
+(...other stuff in between)
+
+* 
+.image ./images/too-slow.gif
+
+* Areas to target
+- installations
+- sending code elsewhere
+- CPU-bound stuff (zip, yum stuff)
+- linear growth areas
+- can anything be done in parallel?
+- "do we need *this?*"
+
+* Changes made
+- build all lambdas in parallel
+- remove unused snyk install & check 
+- remove yum repo creation/use
+- automatically enumerate directories for lamdba builds
+- remove unused push of `:latest` tag
+- reduce number of installs
+- move `Docker build` step to...the build step
+
+* Results
+- ~66% build time reduction (from ~30 min to ~10 min)
+- most builds: *11* *minutes*
+- new max build time of ~20 minutes, usually less, once per day
+- saves roughly 50 hours (~2 days) in Q4 alone for Oberon
+.image ./images/oberon-build-time.png 
+
+
+* Quick fixes
+- re-enable docker caching wherever you can
+- properly layer your dockerfile
+- get rid of yum slug build & usage in your prod Dockerfile
+- reduce ECS health check tunables to something reasonable for the environment
+- ensure a lockfile is present for any ambiguous install
+- move docker build back to build step
+- do things in parallel if possible (tests!)
+
+* Questions?
+
+
+* Helpful links
+.link https://github.com/trivago/parallel-webpack
+.link https://jenkins.io/doc/book/pipeline/syntax/
