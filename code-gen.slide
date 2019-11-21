@@ -1,0 +1,85 @@
+Let the Computer Do It
+Use Codegen & Focus on Business Logic
+21 Nov 2019
+Tags: services, go, codegen
+
+Mark Thomas
+Senior Software Engineer, FloQast
+mark@ifelse.io
+https://ifelse.io
+@markthethomas
+
+* Scenario
+
+*PM*: "I have this cool idea for a feature! Our users will love it!"
+
+*Engineer*: "Great! Let's make it happen. Seems like we need a few routes and some new #business logic"
+
+*PM*: "OK awesome!"
+
+_Engineer_, _to_ _self_: "Ok, so I just need to decide on the API contract, write my integration and unit tests, set up the server routes, ensure my message serialization is good to go, write the business logic, put together the documentation, then add the client methods and make sure it understands what the server will send..."
+
+* 
+.image ./images/gotta-be-better-way.jpg _ 700
+
+* There is!
+
+* Let the computer do (most of it)!
+
+* How?
+Start with a statically-knowable design contract and use code generation (programs writing programs)
+
+    protobuf definition -->     [protoc]   ---->    documentation
+                                            \
+                                             \-->   server code
+                                            \
+                                             \-->   language-agnostic message format
+                                            \ 
+                                             \-->   client SDK
+
+* Protocol Buffers
+- [[https://developers.google.com/protocol-buffers][Protocol Buffers]]: language-neutral, platform-neutral, extensible mechanism for serializing structured data – think XML, but smaller, faster, and simpler
+- (see also: Avro, Thrift, &c.)
+- statically-typed
+- compact, fast
+: do protocol buffer example
+
+* Server codegen
+- [[https://github.com/twitchtv/twirp][Twirp (~gRPC)]]: protobuf plugin + toolkit that generates server code for you from a protocol buffer defintion
+
+    $ brew install protobuf
+    $ go get github.com/twitchtv/twirp/protoc-gen-twirp
+    $ go get -u github.com/golang/protobuf/protoc-gen-go
+
+Generate our `Cars` service code
+    
+    $ protoc --proto_path=$GOPATH/src:. --twirp_out=. --go_out=. ./rpc/cars/cars.proto
+
+Generate our `Nearby` service code
+    
+    $ protoc --proto_path=$GOPATH/src:. --twirp_out=. --go_out=. ./rpc/nearby/nearby.proto
+
+* Wait...what about documentation?
+- we have the technology!
+- https://github.com/pseudomuto/protoc-gen-doc
+
+    go get -u github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
+
+run the `protoc` compiler!
+
+    protoc --doc_out="docs/" ./rpc/**/*.proto
+
+Et voilà!
+
+* Implement business logic (demo)
+
+* Workflow changes
+- start w/ the API contract & design + light documentation
+- move immediately to unit testing & business logic
+- now taken care of for you: routing, serving, (de)serialization, creating client methods
+
+* 
+.image ./images/winnie-codegen.png _ 700
+
+* Any questions?
+
