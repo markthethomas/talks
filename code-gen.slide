@@ -51,10 +51,6 @@ Start with a statically-knowable design contract and use code generation (progra
     $ go get github.com/twitchtv/twirp/protoc-gen-twirp
     $ go get -u github.com/golang/protobuf/protoc-gen-go
 
-Generate our `Cars` service code
-    
-    $ protoc --proto_path=$GOPATH/src:. --twirp_out=. --go_out=. ./rpc/cars/cars.proto
-
 Generate our `Nearby` service code
     
     $ protoc --proto_path=$GOPATH/src:. --twirp_out=. --go_out=. ./rpc/nearby/nearby.proto
