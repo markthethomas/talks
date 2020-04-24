@@ -1,4 +1,4 @@
-The Great Gatsby
+The Great Gatsby.js
 Blazing fast Websites & Apps with React & GraphQL
 24 Apr 2020
 Tags: Graphql, react, javascript
@@ -13,38 +13,84 @@ https://ifelse.io
 
 * how about....a blog!
 
-* What do?
-
-- static or dynamic?
-- user input?
-- stack? 
-- serving?
+* unicorn.computer
+.image ./images/unicorn-computer-screencap.png _ 1000
 
 * Options?
 
 * Server-rendered / templating
-- run-time
+- run-time assembly, rendering on server
+- e.g. handle GET/POST request, fetch data, create HTML strings, reply...
+- stack: usually servers + DB
+- think: ~LAMP stack, perl scripts, express w/ pug (née jade), &c.
 
-* JAM stack
-- JAM => JavaScript, APis, and Markdown
-- compile-time 
-- everytning else => APIs
+*  been there, done that...
 
-* Hybrid
-- e.g. next.js
-- some compile-time, some run-time
+* fancier server-rendered
+- still run-time assembly, dynamic content loading
+- stack: usually servers + DB
+- think: rails (turbolinks), phoenix (live view), laravel, &c.
+- still server-side but w/ fancier fetching
 
-* Enter Gatsby
+* maybe later...
+
+* client-rendered
+- run-time assembly
+- serve client via CDN, fetch data from server
+- think: most web apps today
+
+* bad SEO experience, not worth it...
+
+* "JAM" stack
+- "JAM" => JavaScript, APis, and Markdown
+- ahead-of-time (AOT) assembly / compile-time assembly
+- i.e., prerender all paths to static content where possible
+- everything else else => APIs
+- often: backend-as-a-service (Firebase, Stich, &c.)
+
+* seems cool!
+
+* Enter Gatsby.js
 
 *
 .image ./images/great-gatsby.gif _ 1000
 
-* Enter Gatsby
+* Gatsby
 - "static site generator"
-- use React for views
-- use GraphQL for content
+- use React for views and GraphQL for data
+- JAM-style architecture
+- lots of plugins
+- strong commnunity
 
-* Just user
+* Architecture
+.image ./images/gatsby-arch.png _ 800
 
-* Let's see it in action
+* Tradeoffs
+- useful for static sites and even some dynamic ones
+- little to no cost
+- build time increases as site expands
+- best practices made easy
 
+* Show me
+.image ./images/show-me-matrix.gif _ 600
+
+* Working with Gatsby
+- querying data
+- working with GraphQL
+- deploying
+
+* et voila
+- [[https://unicorn.computer][unicorn.computer]]
+
+* what's next?
+
+* best of both
+- automatic static optimizaton: automatic static pages where possible, dynamic elsewhere
+- edge graphQL APIs
+- [[redwoodjs][https://redwoodjs.com/]]
+- [[next.js][https://nextjs.org/]]
+
+* 
+.image ./images/vince-site-evo.jpg _ 400
+
+* questions?
