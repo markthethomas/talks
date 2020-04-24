@@ -1,0 +1,50 @@
+The Great Gatsby
+Blazing fast Websites & Apps with React & GraphQL
+24 Apr 2020
+Tags: Graphql, react, javascript
+
+Mark Thomas
+Senior Software Engineer, FloQast
+mark@ifelse.io
+https://ifelse.io
+@markthethomas
+
+* Let's build a website...
+
+* how about....a blog!
+
+* What do?
+
+- static or dynamic?
+- user input?
+- stack? 
+- serving?
+
+* Options?
+
+* Server-rendered / templating
+- run-time
+
+* JAM stack
+- JAM => JavaScript, APis, and Markdown
+- compile-time 
+- everytning else => APIs
+
+* Hybrid
+- e.g. next.js
+- some compile-time, some run-time
+
+* Enter Gatsby
+
+*
+.image ./images/great-gatsby.gif _ 1000
+
+* Enter Gatsby
+- "static site generator"
+- use React for views
+- use GraphQL for content
+
+* Just user
+
+* Let's see it in action
+
