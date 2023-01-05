@@ -1,0 +1,73 @@
+Accelerate
+Ch. 7-8
+29 Apr 2022
+Tags: books, architecture, engineering-management
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@ifelse.io
+https://ifelse.io
+@markthethomas
+
+* Agenda
+- Summary of Chapter 7: Management Practices for Software
+- Summary of Chapter 8: Product Development
+- Discussion
+
+* Ch. 7: Management Practices in Software
+
+* Key components to Lean Management:
+1. Limit Work in Process (WIP)
+2. Visual Management
+3. Feedback from Production
+4. Lightweight Change Approach
+
+*  WIP limits
+
+- constrain the # of items in flight for a given team
+- idenitify flow inhibitors, prevent over-burdening
+- not useful w/o a feedback loop and means to observe
+
+* visual management
+
+- common visual that accurately reflects actual state of work
+- accessible by engineering and business teams / members
+
+* feedback from proudction
+- use application performance data to make biz decisiions
+- provide insights to business from production system
+- workflow is observable/tunable
+
+
+* lightweight change management
+- review: pair programming, intra-team code review
+- external or blocking review (manager or board) is _worse_ than no process at all
+- no process is better than an external, blocking process
+- importance of system of record, automated pipeline, separation of duties
+
+* Release Process
+
+- Separation of duties, no "risk management theater"
+- review by those not involved in the change itself (QE, other engineer)
+- lives in a system of record (Github), moved through an automated pipeline
+- auitable
+- change should only be applied to production after passing through a pipeline
+
+* Ch. 8: Product Development
+
+* key components in Lean Product Development:
+
+1. Work in small batches
+2. Make work flow visible
+3. Gather / implement customer feedback
+4. Team Experimentation
+
+* small batches
+* work visibility
+* gather & implement customer feedback
+* team experiementation
+
+> "The key to working in small batches is to have work decomposed into features that allow for rapid development"
+
+*
+.image ./images/lean-product-dev.png _ 700
