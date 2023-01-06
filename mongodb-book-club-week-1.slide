@@ -1,0 +1,198 @@
+# MongoDB Book Club 📕
+Week 1: Chapters 1 & 2
+6 Jan 2023
+Tags: books, architecture, mongodb, databases
+Summary: This is a great document you want to read.
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Welcome!
+
+## Intro
+- 👋 Hi, I’m Mark!
+- 👴 At FQ since 2016
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, crons, FQ-UI, etc.
+- ✅ I’m a Staff Software Engineer focused on Compliance (Rhea, Skoll, Tarvos, Ymir, &c)
+- 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
+- 📆 I hold office hours every Friday from 1-2pm PST - join if you want! Link in my slack profile or ask me for it
+
+: take 30s at most for this slide
+
+## Book Club Format / Resources 📕
+
+- #mongodb-book-club channel in Slack
+- **summary**
+- **Q&A**
+- **Breakouts**
+- **Regroup** / **wrap / logistics**:
+
+## Questions? 🙋‍♀️
+
+## Why do a book club? Why now? 🤔
+- Databases are hard
+    - large, complex, distributed systems
+    - can be hard to learn, always changing
+    - databases vary widely in their capabilities
+- Databases are important
+    - critical to basically any app at FQ
+    - **"Data is the new oil"**
+    - FloQast wins when our engineers are great at database stuff
+- MongoDB is crucial to FQ's future and success
+    - rapidly scaling engineering teams 
+    - the _most_ critical system we have (where the "oil" lives)
+
+: take 1-2 min for this slide
+: ask everyone to put their confidence in how they use mongoDB on a scale of 1-10 in the zoom chat
+
+## What even *is* a database? 🤓 
+
+They can't be that complicated, right? Right? 😅😅😅
+
+: this book is all about a database, so let's chat about that for a second
+: maybe even better yet, we'll build one really quick to whet our appetite
+
+## Let's build one! 🚧
+
+: let's get thinking about databases, how they work, how we use them, how they're built, etc.
+: let's build a simple database in 5 minutes or less
+
+## Let's create 'JSONDB' 📀
+
+.code ./code/mongodb-book-club-week-1/jsonDB-1.js
+
+: let's create a simple database that stores JSON objects in memory
+: it will have set, get, and delete methods
+
+## This isn't so hard! 🤌
+
+.code ./code/mongodb-book-club-week-1/jsonDB-2.js
+
+: Let's make it a _real_ database and add persistence.
+
+## this is getting harder! 😅
+
+A _little_, anyways. We can write JSON files 💪 
+
+Let's make it handle crashes and add a **WAL** (write-ahead log)
+
+## Crash-resistant? 🤯
+
+Add a `.log` file we'll add entries to.
+
+.code ./code/mongodb-book-club-week-1/jsonDB-3.js /START OMIT/,/END OMIT/
+
+## Log time 🪵
+
+Append an entry to the log file when an action is taken. In JSON format, of course!
+
+.code ./code/mongodb-book-club-week-1/jsonDB-3a.js /START OMIT/,/END OMIT/
+
+: let's add a log method that will record entries during writes (sets and deletes)
+
+## Replay ⏮️
+
+Add the ability to read the log file.
+
+.code ./code/mongodb-book-club-week-1/jsonDB-3b.js /START OMIT/,/END OMIT/
+
+: get the file
+: ensure the file is ordered properly by timestamp
+: replay the log file to apply writes to the database
+: truncate the log file and save the new state
+
+
+## Let's try it out! 🚀
+
+.video ./images/crash-recovery.webm video/webm _ 750
+
+## That wasn't too bad!
+
+Now we just need to...
+- add a network API so clients can send remote commands
+- add a query langauge. SQL? Our own? 
+- implement a more efficient storage engine
+- add a way to scale it across multiple machines
+- allow multiple clients to access it at the same time
+- handle concurrency 
+- prove it works correctly at scale
+- write docs
+
+## databases are hard to build 😅
+
+We can stick with MongoDB.
+
+Things to keep in mind over the course of our book:
+- how does MongoDB ensure persistence?
+- how does MongoDB ensure durability of writes and reads? 
+- how does MongoDB ensure consistency across different servers?
+- how does MongoDB's query language work?
+
+The better you understand a system, the better you can use and debug it.
+
+## MongoDB 👋
+
+## Hello, Mongo 🐢
+- For "huMONGOus" workloads
+- Document-oriented database
+- JSON-like documents
+- Schema-less
+- Distributed
+- High availability
+- Horizontal scalability
+
+## MongoDB Philosophy 💭
+- **Flexible**: schema-less*; (less) impedence mismatch (between your app and the db)
+- **Performant**: fast reads and writes
+- **Scalable**: horizontal scaling via sharding, replica sets
+- **Reliable**: Replication, highly-available
+
+
+*_everything_ has a schema in the end
+
+## MongoDB Architecture 🏗️
+
+
+## MongoDB Architecture Terms 🏗️
+- **Document**: JSON-ish object. Stored as BSON (binary JSON).
+- **Collection**: a group of documents
+- **Database**: a group of collections
+- **Cluster**: a group of databases
+- **Shard**: a group of servers that store a subset of a cluster's data
+- **Replica Set**: a group of servers that store a copy of a cluster's data
+
+## 
+
+.image /images/mongo-arch.png _ 800
+
+
+## Documents
+- Keys in documents are strings
+- Every document has an `_id` field (an ObjectID)
+
+## Collections
+
+
+## Databases
+
+## Data Types
+- **ObjectID**: 12-byte ID value (4-byte timestamp, 3-byte machine ID, 2-byte process ID, 3-byte counter)
+- **Null**: null (the value) or a non-existent field
+- **Boolean**: true, false
+- **Number**: 64-bit float
+- **NumberInt**: 4-byte signed int
+- **NumberLong**: 8-byte signed int
+- **Decimal128**: 128-bit decimal; ~great for money!~ just use ints
+- **String**: UTF-8 string
+- **Code**: arbitrary JS code
+
+- **Array**: [1, 2, 3]
+- **Object**: { "a": 1 }
+- **Date**: 64-bit integer, ms since epoch. No TZ
+
+
+- **Binary Data**: new BinData()
+

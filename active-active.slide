@@ -224,7 +224,7 @@ dynamoDB on the DB spectrum
 
 * Creating Our API Gateway + Lambdas...
 .link https://serverless.com/ serverless framework
-.code ./code/active-active/serverless.yml
+.play ./code/active-active/serverless.yml
 
 * Creating API Gateway...
 - regional endpoints vs. edge-optimized
