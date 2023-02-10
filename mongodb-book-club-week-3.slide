@@ -1,0 +1,204 @@
+# MongoDB Book Club 📕
+Week 3: Chapter 5
+10 Feb 2023
+Tags: books, architecture, mongodb, databases
+Summary: Week 3 of the FloQast MongoDB book club
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Welcome!
+
+## Intro
+- 👋 Hi, I’m Mark!
+- 👴 At FQ since 2016
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, le monolith etc.
+- ✅ I’m a Staff Software Engineer focused on Compliance (Rhea, Skoll, Tarvos, Ymir, &c)
+- 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
+- 📆 I hold office hours every Friday from 1-2pm PST - join if you want! Link in my slack profile or ask me for it
+
+: take 30s at most for this slide
+
+## Book Club Format / Resources 📕
+
+- #mongodb-book-club channel in Slack
+- **summary**
+- **Q&A**
+- **Breakouts**
+- **Regroup** / **wrap / logistics**:
+
+
+## What is an index?
+
+## Back to JSONDB!
+
+## let's find a needle in a haystack 🧵
+
+## the haystack 
+
+_array with a million random strings in it_
+
+<br/>
+
+
+```
+const generateRandomStringWithLength = (length) => {
+    let result = "";
+    const characters =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(
+            Math.floor(Math.random() * charactersLength)
+        );
+    }
+    return result;
+};
+
+const getRandomNumberBetween = (min, max) => {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+};
+
+const hayStack = Array(1000000)
+    .fill()
+    .map(() => generateRandomStringWithLength(getRandomNumberBetween(1, 25)));
+```
+
+## the needle
+
+"blah"
+
+## we search! 🧐
+
+
+.code ./code/mongodb-book-club-week-3/no-index.js /START OMIT/,/END OMIT/
+
+or just
+
+```haystack.includes(needle)```
+
+## too slow! 🐢
+
+## let's try again with an index 🧵
+
+## building a better haystack
+- use a specialized data structure to speed up searches
+    - the _type_ of data structure matters
+- check the data structure first, possibly always, instead of doing an exhaustive search
+- tradeoff: 
+    - more memory for faster searches
+    - more time to build the index
+    - more time to update the index
+
+## we'll use a prefix trie!
+
+.image /images/Trie_example.png _ 500
+
+## le code 🧑‍💻
+
+.code ./code/mongodb-book-club-week-3/trie.js
+
+## results! 📊
+
+.image /images/js-indx-perf.png _ 1000
+
+## indexes in MongoDB 🏎️
+
+## 
+
+- MongoDB supports a variety of index types
+    - single field
+    - compound: multiple fields
+    - multikey: items in an array
+    - text: full-text search (just ok)
+    - geospatial
+- the query planner / rewriter tries to determine the best index to use for a given query
+
+## query planner 
+
+.image /images/query-planner-logic.svg _ 500
+
+## the query planner is your friend!
+- use `explain` to see what the query planner is doing
+- look out for:
+    - `COLLSCAN` - collection scan (think of the big includes loop from before)
+    - `IXSCAN` - index scan
+    - `FETCH` - fetch the document from disk
+    - `SORT` - sort the results
+- Fields to look at:
+    - `nReturned`: number of documents returned
+    - `executionTimeMillis`: time to execute the query
+    - `totalKeysExamined`: number of keys examined
+    - `totalDocsExamined`: number of documents examined
+- good queries will have a good returned / examined ratio
+
+
+
+## index rules you can pretty much always follow
+- any read-path should have index(es) to support it
+- choosse the right index type for the right query
+- **(almost)** any write-path should have index(es) to support it (via the predicate)
+- put the sort key first in a compound index
+
+## choosing a good index
+- proper **type** (single field, compound, multikey, text, geospatial, etc.)
+- appropriately **selective**: the index should narrow down the search space as much as possible
+- **match** the read path: the index should be appropriate for the read path and be selectable by the query planner
+
+
+## Poor index: a boolean field
+- not selective
+- only narrows down the search space into two groups
+
+.image /images/index-1.svg _ 600
+
+## "too" selective: _id index 
+- extremely selective
+- narrows down to exactly one document
+- a range query could be used
+- _probably_ not useful for general querying, best for direct retrieval
+
+.image /images/index-2.svg _ 500
+
+## a good start: tenant ID 
+- appropriately selective
+- narrows down to a manageable size of documents
+
+.image /images/index-3.svg _ 600
+
+## types of indexes in MongoDB
+- **single field** - index on a single field
+- **compound** - index on multiple fields
+- **multikey** - index on an array field
+- **text** - index on a string field for text search
+- **2dsphere** - index on a geospatial data field
+- **hashed** - index on a hashed value of the field
+- **geospatial** - index on a geospatial data field
+
+## single field indexes
+- index on a single field
+- can be ascending or descending
+- can be unique or non-unique
+- can be sparse or non-sparse
+
+## compound indexes
+- index on multiple fields
+- can be ascending or descending
+- can be unique or non-unique
+- can be sparse or non-sparse
+
+## unique indexes
+- guarantee that no two documents in a collection have the same value for the indexed field(s)
+- can be sparse or non-sparse
+- can be single field or compound
+
+## sparse indexes
+- only index documents that have the indexed field(s)
+- can be single field or compound
+- can be unique or non-unique
+
+
+## working with the query planner 🧑‍💻

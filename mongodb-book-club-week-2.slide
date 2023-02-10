@@ -1,0 +1,324 @@
+# MongoDB Book Club 📕
+Week 2: Chapters 3 & 4
+20 Jan 2023
+Tags: books, architecture, mongodb, databases
+Summary: Week 2 of the FloQast MongoDB book club
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Welcome!
+
+## Intro
+- 👋 Hi, I’m Mark!
+- 👴 At FQ since 2016
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, le monolith etc.
+- ✅ I’m a Staff Software Engineer focused on Compliance (Rhea, Skoll, Tarvos, Ymir, &c)
+- 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
+- 📆 I hold office hours every Friday from 1-2pm PST - join if you want! Link in my slack profile or ask me for it
+
+: take 30s at most for this slide
+
+## Book Club Format / Resources 📕
+
+- #mongodb-book-club channel in Slack
+- **summary**
+- **Q&A**
+- **Breakouts**
+- **Regroup** / **wrap / logistics**:
+
+
+## Recap of last week 🤨
+- What is a database?
+- What is MongoDB?
+- What is a document?
+- What is a collection?
+- What is a database (in mongo)?
+- What is a cluster?
+- What is a replica set?
+- What is a shard?
+
+## Mongo vs SQL 🤔
+
+.image /images/mongo-vs-sql.png _ 1000
+
+## MongoDB architectural components
+
+.image /images/mongo-arch.png _ 800
+
+
+## Bonus Points 🙇‍♂️
+- what company was behind the creation of MongoDB?
+- what does MongoDB stand for?
+- what does WAL stand for?
+
+## Chapters 3 & 4 📚
+
+## Chapter 3: Oh, CRUD 🚽
+
+## Lifecycle of a Mongo Command
+
+##
+
+.image /images/mongo-lifecycle-1.png _ 700
+
+##
+
+.image /images/mongo-lifecycle-2.png _ 700
+
+##
+
+.image /images/mongo-lifecycle-3.png _ 1000
+
+##
+
+.image /images/mongo-lifecycle-4.png _ 900
+
+##
+
+.image /images/mongo-lifecycle-5.png _ 1000
+
+## Creating ➕ (Crud)
+
+## Ways to add documents to Mongo ➕
+- `insertOne`: add a single document
+- `insertMany`: add multiple documents
+    - `ordered`: stop on first error
+    - `unordered`: continue on error
+    - saves round-trips
+- `insert`: add a single or multiple documents
+- pipelining: send many commands in a single request if possible (insertMany, updateMany, deleteMany, Bulk API, etc.)
+
+## Ways to increase write performance 🏁
+- `writeConcern`: how many nodes must acknowledge the write
+- `wtimeout`: how long to wait for the write to be acknowledged
+- `journal`: wait for the write to be committed to the journal
+- `ordered`: stop on first error
+- `unordered`: continue on error
+- `bypassDocumentValidation`: skip validation
+
+## Validation ✅
+- very lightweight
+    - does it have an `_id` field?
+    - is it too large?
+    - is the BSON valid?
+- ...
+
+: things missing: relationships, extended validation (size, length, type, etc.), and more
+
+## 
+
+.image /images/statue-of-liberty.jpg _ 300
+
+> "Give me your strings, your booleans, Your compressed binaries, yearning to be unzipped, The wretched refuse of your teeming applications. Send these, the schemaless, tempest-tost to me, I lift my lamp beside the golden door!"
+
+## Updating ✏️ (crUd)
+
+## Updating data 📝
+- `updateOne`
+- `updateMany`
+- `replaceOne`
+- updates are atomic: "last write wins"
+
+```
+db.getCollection("myColl").updateOne(
+    matchDoc,
+    updateDoc
+)
+```
+
+## update operators ✏️
+- `$set`
+    - sets field(s) without replacing the whole document
+    - Mongoose does this automatically for you
+    - you almost always want this
+    - without it, you clobber your doc (see `updateOne`)
+- $inc: increment, numbers only
+- array operators:
+    - `$push`: add to an array
+    - `$slice` | `$sort`: control array size & order
+    - `$addToSet`: ensure uniqueness in a list. Can use complex / primitive docs
+    - `$pop` | `$pull`: remove from array
+- `{ upsert: true }`: happens server-side, removes possible race conditions
+
+## Deleting ␡ (cruD)
+
+## Removing data 👋
+- `deleteOne`: remove a single document
+- `deleteMany`: removes...many...documents
+- `drop`: remove all docs from a collection. PLEASE DO NOT DO THIS 🤗
+
+```
+db.getCollection("myColl").deleteOne(
+    matchDoc
+)
+```
+
+## update operators (cont.) ✏️
+- `$setOnInsert`: only set on...insert
+- `updateMany`: update lots of docs given a query
+- `findOneAndUpdate` | `findOneAndReplace` | `findOneAndDelete`: {update, replace, delete} a single doc given a query and return it
+    - consolidates operations on the server
+    - tip: use `findOneAndXXX` to avoid possible race conditions where multiple writers could update the same doc. Server handles the concurrency for you
+
+## Chapter 4: Queries 📊
+
+## Reading 📖 (cRud)
+
+## What's in a query language? 🤔
+- how to get at the data you've worked so hard to put in the database?
+- tradeoff spectrum: ease of use vs. expressive vs. new/old vs. typed...
+- options:
+    - SQL
+        - MySQL, PostgreSQL, Oracle, MsSQL, RedShift, BigQuery, etc.
+    - NoSQL
+        - CQL (Cassandra)
+        - Cypher (Neo4j)
+        - Gremlin, SPARQL (Neptune)
+        - PartiQL (DynamoDB)
+        - FQL (Fauna)
+
+## find 🔍
+
+Basic idea:
+
+```
+find(
+    filter: Document,
+    options: FindOptions
+)
+```
+all too easy!
+
+
+## find (cont.) 🔍
+- general idea: "give me a doc that looks like this"
+- vs. SQL: "I'll write some expressions, statements, etc." 
+- SQL transferable, with flavors
+- Mongo query language tradeoffs:
+    - less expressive, transferable
+    - more idiomatic to your app code
+    - easier entry, harder path to "advanced"
+- dot notation to accesss nested fields
+    - e.g. `find({ "address.city": "Pasadena", best: true })`
+
+## Query operators 👀
+- conditionals: `$lt`, `$gt`, `$lte`, `$gte`, `$eq`, `$ne`...
+- OR: `$or`, `$in`
+    - `$in` is your friend
+- AND: `$and`
+    - implicit AND is the default 
+    - e.g. `{ "address.city": "Pasadena", best: true }` => `{ $and: [{ "address.city": "Pasadena" }, { best: true }] }`
+- NOT: `$not`, `$ne`
+    - watch out for performance bombs here
+
+👀
+> "MongoDB provides an implicit AND operation when specifying a comma separated list of expressions."
+
+
+## Type-specific queries 👀
+- `null` and `undefined` are different
+    - querying for `null` means "is null" or, field does not exist
+    - combine with `$exists` if looking for "actual" null values
+    - avoid if possible; leave the field blank or find a concrete negating type (e.g. `false` instead of `null`)
+- `$regex`: regexes are powerful, but slow
+    - use sparingly; prefer concrete matchers first if possible
+    - use indexes otherwise it's basically `CollScan++`
+    - use `$text` if possible for full-text search or use Atlas Search (Solr service)
+
+## Type-specific queries (cont.) 👀
+- arrays
+    - scalars: query like "normal"
+        - .e.g: `find({ "tags": "fun" })` => `{ tags: ["fun", "awesome"] }`
+    - `$all`: all elements in the array match; think "Array.prototype.every"
+    - `$elemMatch`: at least one element matches. Think "Array.prototype.some"
+    - `$size`: array size
+    - `$slice`: array slicing for return values
+    - `$` operator: `thing.$` => yields first matched item
+
+## Querying sub-documents 📜
+- find this thing
+```json
+{
+    "address": {
+        "city": "Pasadena",
+        "state": "CA"
+    }
+}
+```
+
+- finding the doc:
+
+```json
+find({ "address": { "city": "Pasadena" } })
+```
+
+- no dice! Let's try dot-notation:
+
+```
+find({ "address.city": "Pasadena" })
+```
+
+- huzzah!
+```json
+{
+    "address": {
+        "city": "Pasadena",
+        "state": "CA"
+    }
+}
+```
+
+## Other query considerations & operators 📜
+- $where: you probably don't want to use this
+    - it's slow
+    - it's not indexed
+    - it's not type-safe
+    - it's not portable
+    - security team will be upset (injection)
+- $limit, $skip, $sort
+    - $limit: limit the number of results
+    - $skip: skip the first N results
+    - $sort: sort the results
+
+## Pagination 📜
+- "I want page 4"
+- `skip` and `limit` are your friends
+    - `skip` is the number of results to skip
+    - `limit` is the number of results to return
+    - `sort` is the order to return results in
+- "I want page 4" => `skip(3 * 10).limit(pageSize)`
+- performance perils
+    - at large scale, not as fast
+    - beware sorting implications
+    - use indexes!
+    - if you have an indeterminate size (infinite scroll), use token-based pagination
+        - "here's the last ID, give me the next 100 items after this ID"
+
+## skip/limit
+.image /images/offset-skip-take.png _ 800
+
+## cursor-based
+.image /images/cursor-1.png _ 800
+
+## cursor-based (cont.)
+.image /images/cursor-2.png _ 800
+
+## cursor-based (cont.)
+.image /images/cursor-2-1.png _ 800
+
+: putting data _into_ the database is relatively easy, but reading it is more common and more complex
+
+## Long-running queries
+- cursors: a way to read data from the database in chunks
+- drivers usually abstract this away
+- cursors are not "live"
+    - they are a snapshot of the data at the time of the query
+    - they are not updated if the data changes
+- `immortal` cursors: careful! Avoids a timeout on the cursor
+
+
+## questions? 🤔

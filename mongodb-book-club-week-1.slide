@@ -2,7 +2,7 @@
 Week 1: Chapters 1 & 2
 6 Jan 2023
 Tags: books, architecture, mongodb, databases
-Summary: This is a great document you want to read.
+Summary: Week 1 of the FloQast MongoDB book club
 
 Mark Thomas
 Staff Software Engineer, FloQast
@@ -15,7 +15,7 @@ https://ifelse.io
 ## Intro
 - 👋 Hi, I’m Mark!
 - 👴 At FQ since 2016
-- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, crons, FQ-UI, etc.
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, le monolith etc.
 - ✅ I’m a Staff Software Engineer focused on Compliance (Rhea, Skoll, Tarvos, Ymir, &c)
 - 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
 - 📆 I hold office hours every Friday from 1-2pm PST - join if you want! Link in my slack profile or ask me for it
@@ -48,6 +48,8 @@ https://ifelse.io
 : take 1-2 min for this slide
 : ask everyone to put their confidence in how they use mongoDB on a scale of 1-10 in the zoom chat
 
+## Databases! 🗄️
+
 ## What even *is* a database? 🤓 
 
 They can't be that complicated, right? Right? 😅😅😅
@@ -64,6 +66,8 @@ They can't be that complicated, right? Right? 😅😅😅
 
 .code ./code/mongodb-book-club-week-1/jsonDB-1.js
 
+## Let's add persistence! 📁
+
 : let's create a simple database that stores JSON objects in memory
 : it will have set, get, and delete methods
 
@@ -75,7 +79,7 @@ They can't be that complicated, right? Right? 😅😅😅
 
 ## this is getting harder! 😅
 
-A _little_, anyways. We can write JSON files 💪 
+Congrats. We can write JSON files 💪 
 
 Let's make it handle crashes and add a **WAL** (write-ahead log)
 
@@ -93,6 +97,8 @@ Append an entry to the log file when an action is taken. In JSON format, of cour
 
 : let's add a log method that will record entries during writes (sets and deletes)
 
+## Don't forget to update our set / get / delete methods!
+
 ## Replay ⏮️
 
 Add the ability to read the log file.
@@ -109,7 +115,7 @@ Add the ability to read the log file.
 
 .video ./images/crash-recovery.webm video/webm _ 750
 
-## That wasn't too bad!
+## That wasn't too bad! 🤪
 
 Now we just need to...
 - add a network API so clients can send remote commands
@@ -117,21 +123,30 @@ Now we just need to...
 - implement a more efficient storage engine
 - add a way to scale it across multiple machines
 - allow multiple clients to access it at the same time
-- handle concurrency 
+- handle concurrency
+- add client libraries for Node, Go, Python, Ruby, Java, etc.
 - prove it works correctly at scale
+- add a way to backup and restore the database
 - write docs
+- ... and more!
 
 ## databases are hard to build 😅
 
-We can stick with MongoDB.
+We can stick with MongoDB. It deals with: 
+- ensuring durable persistence on disk (no bad files, no data loss)
+- fast reads and writes (no slow queries*)
+- concurrency for reads, writes, backups, etc.
+- indexes, aggregations, backups, etc.
+- a query language and subsequent query planner & rewriter
+- a network API
+- a way to scale across multiple machines (replica sets, sharding)
+- a way to handle multiple clients at the same time
+- a suite of language drivers (mongodb-node.js, Mongoose, etc.)
+- a way to prove it works correctly at scale ([jepsen testing](https://www.mongodb.com/jepsen))
 
-Things to keep in mind over the course of our book:
-- how does MongoDB ensure persistence?
-- how does MongoDB ensure durability of writes and reads? 
-- how does MongoDB ensure consistency across different servers?
-- how does MongoDB's query language work?
+Why learn this stuff? 
 
-The better you understand a system, the better you can use and debug it.
+_The better you understand a system and how it works, the better you can use, opperate, and debug it._
 
 ## MongoDB 👋
 
@@ -139,6 +154,7 @@ The better you understand a system, the better you can use and debug it.
 - For "huMONGOus" workloads
 - Document-oriented database
 - JSON-like documents
+- Non-SQL query language
 - Schema-less
 - Distributed
 - High availability
@@ -150,11 +166,7 @@ The better you understand a system, the better you can use and debug it.
 - **Scalable**: horizontal scaling via sharding, replica sets
 - **Reliable**: Replication, highly-available
 
-
 *_everything_ has a schema in the end
-
-## MongoDB Architecture 🏗️
-
 
 ## MongoDB Architecture Terms 🏗️
 - **Document**: JSON-ish object. Stored as BSON (binary JSON).
@@ -164,35 +176,48 @@ The better you understand a system, the better you can use and debug it.
 - **Shard**: a group of servers that store a subset of a cluster's data
 - **Replica Set**: a group of servers that store a copy of a cluster's data
 
-## 
+## High-level Components 🧱
 
 .image /images/mongo-arch.png _ 800
 
+## MongoDB vs. SQL 🤔
+
+.image /images/mongo-vs-sql.png _ 1000
 
 ## Documents
 - Keys in documents are strings
 - Every document has an `_id` field (an ObjectID)
+- 16 MB max size
+- BSON (binary JSON) is the storage format at rest
 
 ## Collections
-
+- A group of documents
+- Usually one collection per "type" of document
+- some restrictions on naming, length
 
 ## Databases
+- collections of ... collections
+- usually one database per application
+- can have multiple databases per cluster
 
 ## Data Types
 - **ObjectID**: 12-byte ID value (4-byte timestamp, 3-byte machine ID, 2-byte process ID, 3-byte counter)
 - **Null**: null (the value) or a non-existent field
 - **Boolean**: true, false
-- **Number**: 64-bit float
-- **NumberInt**: 4-byte signed int
-- **NumberLong**: 8-byte signed int
+- **Numbers**: 64-bit float, NumberInt, NumberLong
 - **Decimal128**: 128-bit decimal; ~great for money!~ just use ints
 - **String**: UTF-8 string
+- **Array**: Useful for lists, sets. Can contain other primitive types.
+- **Embedded Documents**: Other documents can be arbitrarily nested
+- **Date**: 64-bit integer, ms since epoch. No TZ
+- **Binary Data**: new BinData()
+- **Regular Expression**: new RegExp()
 - **Code**: arbitrary JS code
 
-- **Array**: [1, 2, 3]
-- **Object**: { "a": 1 }
-- **Date**: 64-bit integer, ms since epoch. No TZ
-
-
-- **Binary Data**: new BinData()
+## ObjectIDs
+- 12-byte ID value (4-byte timestamp, 3-byte machine ID, 2-byte process ID, 3-byte counter)
+- 4-byte timestamp is seconds since epoch
+    - this means you can sort by `_id`! 
+- Faster to generate than UUIDs or autoincrementing ints
+- automatically created for a doc if `_id` is not specified
 
