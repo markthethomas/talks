@@ -82,20 +82,28 @@ or just
 
 ## too slow! 🐢
 
-## let's try again with an index 🧵
+## let's try again with an index 🫡
 
-## building a better haystack
+## building a better haystack 🥞   
 - use a specialized data structure to speed up searches
     - the _type_ of data structure matters
 - check the data structure first, possibly always, instead of doing an exhaustive search
 - tradeoff: 
-    - more memory for faster searches
-    - more time to build the index
-    - more time to update the index
+    - more memory/disk-space taken up but results in faster searches
+    - more time to build the index (either from scratch or incrementally)
+    - more time to update the index (each write must update the index(es))
 
-## we'll use a prefix trie!
+## we'll use a prefix trie! 🌲
 
-.image /images/Trie_example.png _ 500
+- contains: "pot", "past, "pass", "par", "pas", "pa", "po", "part"
+- useful for autocomplete, spell-checking, etc. 
+- costs:
+    - space: _O(k*n)_
+    - insert: _O(k)_
+    - lookup: _O(k)_
+
+
+.image /images/trie_with_four_strings.svg _ 400
 
 ## le code 🧑‍💻
 
@@ -105,57 +113,89 @@ or just
 
 .image /images/js-indx-perf.png _ 1000
 
+## Indexes in general 🪖
+- most databases have some _form_ of indexing
+    - SQL databases: B-trees, hash indexes, etc.
+    - NoSQL databases: B-trees, hash indexes, etc.
+    - search-oriented databases: everything is an index (e.g. Elasticsearch)
+    - K/V stores: less common, but still possible
+- indexes are a tradeoff between space and time
+    - more space for faster queries
+    - more time to build / update the index
+- allow / support constraints on data
+    - e.g. unique, not null, etc.
+- types: bitmap (super cool!), full-text, B-tree, hash, set, etc.
+
 ## indexes in MongoDB 🏎️
 
-## 
+## General Indexing Concepts / Rules
+
+## Types
 
 - MongoDB supports a variety of index types
-    - single field
-    - compound: multiple fields
-    - multikey: items in an array
-    - text: full-text search (just ok)
-    - geospatial
+    - **single field** - index on a single field
+    - **compound** - index on multiple fields
+    - **multikey** - index on an array field
+    - **text** - index on a string field for text search
+    - **geospatial** - index on a geospatial data field
+    - **wildcard** - index on a field or set of fields
 - the query planner / rewriter tries to determine the best index to use for a given query
 
-## query planner 
+## Query planner 
 
 .image /images/query-planner-logic.svg _ 500
 
 ## the query planner is your friend!
 - use `explain` to see what the query planner is doing
 - look out for:
-    - `COLLSCAN` - collection scan (think of the big includes loop from before)
-    - `IXSCAN` - index scan
+    - `COLLSCAN` - collection scan (think of the big `includes` loop from before)
+    - `IXSCAN` - index scan (using our prefix trie)
     - `FETCH` - fetch the document from disk
-    - `SORT` - sort the results
+    - `SORT` - sort the results in memory
 - Fields to look at:
     - `nReturned`: number of documents returned
     - `executionTimeMillis`: time to execute the query
     - `totalKeysExamined`: number of keys examined
     - `totalDocsExamined`: number of documents examined
-- good queries will have a good returned / examined ratio
+- returned / examined ratio: 100 returned / 125 examined -> 0.8 (Higher is better)
 
+## Cardinality 🦜
+- the number of unique values in a field (or set of possble fields)
+- an index might not be worth it if the cardinality is too low
+    - e.g. a field with only 2 possible values
+- might still be useful if used as part of a compound index
+    - e.g. a field with only 10 possible values, but used in a compound index with a field that has a high cardinality
 
+## Covered Queries
+- a query that can be answered by the index alone
+- no need to fetch the document from disk
+- can be used to avoid a `FETCH` stage in the query plan
+- useful if all the fields you need are in the index
+- the fastest query you can do
 
-## index rules you can pretty much always follow
-- any read-path should have index(es) to support it
-- choosse the right index type for the right query
-- **(almost)** any write-path should have index(es) to support it (via the predicate)
-- put the sort key first in a compound index
+## index rules you can pretty much always follow 🤗
+- _always_ verify with the query planner!
+- any __read__-path should have index(es) to support it
+    - further, almost any sort-path should have an index to support it
+- choose the right index __type__ for the right query
+    - increase complexity as you go
+    - you'll probably only ever need single field, compound, and multikey indexes
+- most any __write__-path should have index(es) to support it (via the predicate)
+- negation-based operators (`$ne`, `$nin`, `$not`, etc.) are not as selective, so they are less efficient even when they _do_ use indexes 
+- ESR for compound indexes `[...equality keys, ...sorting keys, ...range keys]` (more later)
 
-## choosing a good index
+## choosing a good index ❤️
 - proper **type** (single field, compound, multikey, text, geospatial, etc.)
 - appropriately **selective**: the index should narrow down the search space as much as possible
 - **match** the read path: the index should be appropriate for the read path and be selectable by the query planner
 
-
-## Poor index: a boolean field
+## Poor index: a boolean field 😢
 - not selective
 - only narrows down the search space into two groups
 
 .image /images/index-1.svg _ 600
 
-## "too" selective: _id index 
+## "too" selective: _id index 🤷‍♂️
 - extremely selective
 - narrows down to exactly one document
 - a range query could be used
@@ -163,42 +203,107 @@ or just
 
 .image /images/index-2.svg _ 500
 
-## a good start: tenant ID 
+## a good start: tenant ID 🤙
 - appropriately selective
 - narrows down to a manageable size of documents
 
 .image /images/index-3.svg _ 600
 
-## types of indexes in MongoDB
-- **single field** - index on a single field
-- **compound** - index on multiple fields
-- **multikey** - index on an array field
-- **text** - index on a string field for text search
-- **2dsphere** - index on a geospatial data field
-- **hashed** - index on a hashed value of the field
-- **geospatial** - index on a geospatial data field
+## Specific Index Types
 
-## single field indexes
-- index on a single field
-- can be ascending or descending
-- can be unique or non-unique
-- can be sparse or non-sparse
+## Single-Field Indexes 🏎️
+- for simpler queries just narrowing down by a single field
+- e.g. `{ name: "Mark" }`
+- produces something like: 
 
-## compound indexes
-- index on multiple fields
-- can be ascending or descending
-- can be unique or non-unique
-- can be sparse or non-sparse
+```
+["Mark"]
+["Noel"]
+["Ophelia"]
+["Penelope"]
+["Quinn"]
+["Ryan"]
+["Stavros"]
+...
+```
 
-## unique indexes
-- guarantee that no two documents in a collection have the same value for the indexed field(s)
-- can be sparse or non-sparse
-- can be single field or compound
+## Compound Indexes 🏎️
+- _indexes on multiple fields_
+- very powerful
+- work on top-level or nested documents or arrays
 
-## sparse indexes
-- only index documents that have the indexed field(s)
-- can be single field or compound
-- can be unique or non-unique
+e.g.
+```
+{ name: 1, age: -1 }
+```
+
+produces something like: 
+```
+["Mark", 100]
+["Noel", 99]
+["Opheilia", 98]
+["Penelope", 97]
+["Quinn", 96]
+["Ryan", 95]
+["Stavros", 94]
+...
+```
+
+## Compound index tips 🧑‍🏫
+
+- general ordering: `[...equality keys, ...sorting keys, ...range keys]` (ESR)
+
+    ```{ tlcID: 1, company: 1, createdAt: 1, dollars: 100}```
+
+- in practice:
+    - sort by: [tlc, company, ..., sortable values] x number of sort paths
+- direction (1, -1, etc.) _only_ matters in multi-sort paths
+    - indexes can be read in either direction (`[{a: 1}, {b: -1}]` is different than `[{b: -1}, {a: 1}]`)
+- implicit: an index on `{a: 1, b: 1}` also produces an implicit index for `{a: 1}` or prefixes
 
 
-## working with the query planner 🧑‍💻
+## Multikey Indexes 🏎️
+- for queries that need to match on array values
+- only one field per index type (`n*m` growth otherwise)
+- more keys to scan / store
+- e.g.:
+    
+    ```{ 
+        otherField: 100,
+        tags: ["mongodb", "postgres", "dynamodb", "neptune", "neo4j", "mysql", "myrocks", "zstd"] 
+    }````
+- produces an index entry per item in the array
+
+```
+[otherField, "mongodb"]
+[otherField, "postgres"]
+[otherField, "dynamodb"]
+[otherField, "neptune"]
+[otherField, "neo4j"]
+[otherField, "mysql"]
+[otherField, "myrocks"]
+[otherField, "zstd"]
+```
+
+## Unique Indexes ❄️
+- uses an index to enforce uniqueness based on a field or set of fields
+- watch out for nullable fields! Null is treated as a value by the unique index
+    - Mongo will prevent more than one item with a null value as part of the unique index. Use partial indexes for this
+- can silently fail if used on large fields (e.g. arbitray text that cannot be indexed)
+- compound unique indexes: all fields must be unique together, but individual fields can be non-unique
+    - e.g. `{ name: 1, age: 1 }` is unique on `{ name: "Mark", age: 100 }`, but not on `{ name: "Mark", age: 99 }`
+- handle with care
+
+## Partial Indexes ½
+- only index documents that match a given filter
+- can be used to:
+    - enforce uniqueness on a subset of documents
+    - index only a subset of documents
+    - index only a subset of fields
+- useful for saving space or accounting for nullable values
+- superset of sparse indexes
+
+## Sparse Indexes 🌵
+- only index documents that have the indexed field
+- skips over documents that don't have the indexed field or the value is `null`
+- useful for saving space or accounting for nullable values

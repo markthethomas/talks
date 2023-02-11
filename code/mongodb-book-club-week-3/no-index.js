@@ -28,7 +28,7 @@ console.time("find");
 const needle = "blah";
 let result = "";
 for (let i = 0; i < hayStack.length; i++) {
-    if (hayStack[i] === needle || hayStack[i].includes(needle)) {
+    if (hayStack[i] === needle) {
         result = hayStack[i];
         break;
     }
