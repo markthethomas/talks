@@ -1,0 +1,278 @@
+# MongoDB Book Club 📕
+Week 4: Chapter 6
+3 Mar 2023
+Tags: books, architecture, mongodb, databases
+Summary: Week 4 of the FloQast MongoDB book club
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Welcome!
+
+## Intro
+- 👋 Hi, I’m Mark!
+- 👴 At FQ since 2016
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, le monolith etc.
+- ✅ I’m a Staff Software Engineer focused on Compliance (Rhea, Skoll, Tarvos, Ymir, &c)
+- 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
+- 📆 I hold office hours every Friday from 1-2pm PST - join if you want! Link in my slack profile or ask me for it
+
+: take 30s at most for this slide
+
+## Book Club Format / Resources 📕
+
+- #mongodb-book-club channel in Slack
+- **summary**
+- **Q&A**
+- **Breakouts**
+- **Regroup** / **wrap / logistics**:
+
+
+## ✨ special indexes ✨
+
+## Back to JSONDB! (again!) 📁
+
+## let's build a special index! 🧱
+
+## text search!
+
+## ...because why not!
+
+## The mission 🚀
+
+- given a large document, find all lines that contain a given string
+- target doc, "The Project Gutenberg EBook of The Adventures of Sherlock Holmes" ([norvig.com](https://norvig.com/ngrams/))
+- raw text is around 6.5MB
+- can we allow for typos? (e.g. "glarge" vs "large")
+- can it be fast?
+
+## First pass: the naive approach 🥴
+
+- read the file line by line
+- check if the line contains the string
+- if so, add it to the results
+
+(I'll let you just imagine the code for this one) 🤓
+
+## Second pass: "pay to index" 🤑
+- read the file line by line
+- process each line into a list of tri-grams
+    - "large" -> ["lar", "arg", "rge"]
+- store the line number and tri-grams in a data structure
+- when searching, check if the tri-grams are in the data structure
+    - if so, add the line number to the results
+    - then, read the line from the file and add it to the results
+
+## trigram
+
+.image /images/trigram-basic.png _ 1000
+
+## inverted index / "posting list"
+
+.image /images/inverted-index-1.png _ 1000
+
+## inverted index / "posting list" (data structure)
+
+.image /images/inverted-index-ds.png _ 600
+
+
+## query process
+.image /images/query-trigram.png _ 900
+
+
+## JSONDB++
+
+simplified trigram function:
+
+
+```
+const trigram = (text) => {
+    const trigrams = [];
+    for (let i = 0; i < text.length - 2; i++) {
+        trigrams.push(text.slice(i, i + 3));
+    }
+    return trigrams;
+};
+```
+
+Adding a posting/entry:
+
+```
+const addPosting = (term, docId) => {
+    if (!postingList.has(term)) {
+        postingList.set(term, new Map());
+    }
+    const docMap = postingList.get(term);
+    if (!docMap.has(docId)) {
+        docMap.set(docId, 0);
+    }
+    docMap.set(docId, docMap.get(docId) + 1);
+};
+```
+
+## JSONDB++ (cont.)
+
+Indexes a document:
+
+```
+const index = (docId, text) => {
+    const terms = text.split(" ");
+    for (const term of terms) {
+        const trigrams = trigram(term);
+        for (const trigram of trigrams) {
+            addPosting(trigram, docId);
+        }
+    }
+};
+```
+
+## JSONDB++ (cont.)
+
+Search for stuff!
+```
+const search = (query) => {
+    const trigrams = trigram(query);
+    const results = new Map();
+    for (const trigram of trigrams) {
+        const docMap = postingList.get(trigram);
+        if (docMap) {
+            for (const [docId, count] of docMap.entries()) {
+                if (!results.has(docId)) {
+                    results.set(docId, 0);
+                }
+                results.set(docId, results.get(docId) + count);
+            }
+        }
+    }
+    return Array.from(results.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([docId, count]) => ({
+            docId,
+            count,
+            text: db[docId],
+        }));
+};
+```
+
+: show a demo of this part!
+
+## tradeoffs
+- purpose-built: might only work for the data type you expect (text)
+- can have different storage/speed/etc. tradeoffs
+    - for example: 
+        - might be very CPU-intensive to build the index
+        - storge space could be 100x larger than the original data
+
+## Bonus: semantic search!
+
+.image /images/vector-embedding.png _ 900
+
+## semantic search (cont.)
+
+.image /images/vector-search.png _ 900
+
+## special index types in MongoDB 🍕
+
+## Geospatial indexes 🌍
+- allow for fast queries based on location
+- can be used for:
+    - finding nearby locations
+    - finding locations within a given area
+    - finding locations within a given distance
+- must be stored using the GeoJSON format type
+- pssst: you probably want Postrges' postGIS extension instead
+
+## query types supported
+- $geoWithin
+- $geoIntersects
+- $near
+- $nearSphere
+- $geoNear
+- $box
+
+## full-text search
+- definition: "search for things using more than exact or simple string matching"
+- the funnest type of index to make, use, learn about (IMO) 😁
+- specialized systems:
+    - Elasticsearch
+    - Solr (powers ^)
+    - Lucene (powers ^)
+    - Meilisearch
+    - Algolia (paid)
+    - etc.
+
+## full-text search (cont.)
+- use-cases:
+    - fuzzy search
+    - web search (Google)
+    - log ingest / retrieval (loggly)
+    - semantic search (Google images)
+- tradeoff spectrum: increased storage + time to dramatically increase retrieval quality
+
+: don't forget to mention how even the most advanced search (like semnatic search) is still basically doing what the trigram thing was doing
+
+## Change-data capture
+.image /images/change-data-capture-problem.png _ 700
+
+## "we can do anyting!"
+
+.image /images/combined-cdc.png _ 400
+
+## Mongo's answer(s)
+- MongoDB supports full-text search using the `text` index
+- only one of these per collection
+- can be used for:
+    - searching for documents that contain a given word
+    - searching for documents that contain a given phrase
+    - searching for documents that contain a given word with a given prefix
+- use `$text` operator to query the index
+
+## example processing pipeline
+
+.image /images/full-text-processing.png _ 700
+
+## tradeoffs / limits
+- only one `text` index per collection
+- bigger RAM requirements for performance
+- higher write tax
+- relevancy is tuneable, but not automatic
+- langauge has an impact
+
+## Mongo Atlas Search
+
+- Similar to the two-system setup, but uses Solr under the hood and is a managed service.
+- still "just an index" to add to your collection
+
+.image /images/change-data-capture-problem.png _ 700
+
+## Capped Collections
+- a collection with a fixed size
+- similar to a ring buffer
+- once the collection is full, the oldest documents are removed to make room for new ones
+- cannot be sharded!
+- useful for:
+    - log aggregation
+    - message queues
+    - etc.
+- prefer TTL collections if possible due to how WiredTiger handles them
+
+## Tailable Cursors
+- a cursor that stays open after the last document is returned
+- "infinite" stream of documents
+
+## TTL Indexes
+- the ones you actually might use
+- automatically delete documents after a given time
+- deletion granularity isn't perfect
+- can be used for:
+    - log aggregation
+    - message queues
+    - etc.
+
+## GridFS
+- a way to store large files in MongoDB
+- stores files in chunks
+- we don't need this (S3)
