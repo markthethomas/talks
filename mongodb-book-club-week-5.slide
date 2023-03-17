@@ -1,0 +1,429 @@
+# MongoDB Book Club 📕
+Week 5: Chapter 7 - The Aggregation Framework
+17 Mar 2023
+Tags: books, architecture, mongodb, databases
+Summary: Week 5 of the FloQast MongoDB book club
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Welcome!
+
+## Intro
+- 👋 Hi, I’m Mark!
+- 👴 At FQ since 2016
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, le monolith etc.
+- ✅ I’m a Staff Software Engineer focused on Compliance (Rhea, Skoll, Tarvos, Ymir, &c)
+- 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
+- 📆 I hold office hours every Friday from 1-2pm PST - join if you want! Link in my slack profile or ask me for it
+
+: take 30s at most for this slide
+
+## Book Club Format / Resources 📕
+
+- #mongodb-book-club channel in Slack
+- **summary**
+- **Q&A**
+- **Breakouts**
+- **Regroup** / **wrap / logistics**:
+
+
+## The Aggregation Framework 
+
+## Back to JSONDB! (again!) 📁
+
+## let's build an aggregation thing
+
+## JSONDB+++++++ (at this point)
+- last time: full text indexing 
+- Mongo should be getting worried
+- end goal is to implement something like:
+    
+    
+`aggregate(data, pipeline[]) => data`
+
+We'll also support the following pipeline stages:
+- `$match`
+- `$unwind`
+- `$group`
+- `$sort`
+- `$lookup`
+- `$project`
+
+
+## Let's start! 🚀
+
+```
+const agg = {};
+
+agg.$match = (data, callback) => {
+    return data.filter(callback);
+};
+```
+
+we might use it like so:
+
+```
+// ...
+{
+    $match: (item) => item.age > 25 && item.age < 32,
+},
+// ...
+```
+
+## All too easy 🦾
+
+## time to unwind 🧵
+
+Let's do `$unwind`. This should create a new item in the array for each item in a nested array key.
+
+So, `{ a: [1, 2, 3] }` would become `{ a: 1 }`, `{ a: 2 }`, and `{ a: 3 }`.
+
+```
+agg.$unwind = (data, callback) => {
+    return data.reduce((acc, item) => {
+        const result = [...acc];
+        const key = callback(item);
+        const values = item[key];
+        values.forEach((value) => {
+            result.push({ ...item, [key]: value });
+        });
+        return result;
+    }, []);
+};
+```
+
+And we can use it like:
+
+```
+// ...
+{ $unwind: (item) => "hobbies" },
+// ...
+```
+
+## time for a GROUP chat 🥁
+
+```
+// ...
+agg.$group = (data, callback) => {
+    return data.reduce((acc, item) => {
+        const result = [...acc];
+        const key = callback(item);
+        const group = result.find((item) => item._id === key);
+        if (group) {
+            group.count += 1;
+        } else {
+            result.push({ _id: key, count: 1 });
+        }
+        return result;
+    }, []);
+};
+// ...
+```
+
+and we can use it like:
+```
+// ...
+{
+    $group: (item) => item.hobbies,
+},
+// ...
+```
+
+## Let's see if we SORT this out 📝
+
+We might want to sort documents in the pipeline. Let's do that.
+
+```
+agg.$sort = (data, callback) => data.sort(callback);
+```
+and to use:
+```
+ {
+    $sort: (a, b) => {
+        return b.hobbyists - a.hobbyists;
+    },
+},
+```
+(descending sort)
+
+Thanks JavaScript!
+
+## Look(up) in the air! ✈️
+
+```
+agg.$lookup = (data, callback) => {
+    return data.map((item) => {
+        const result = { ...item };
+        const { from, localField, foreignField, as } = callback(item);
+        const foreignItem = from.find((foreignItem) => {
+            return foreignItem[foreignField] === item[localField];
+        });
+        result[as] = foreignItem;
+        return result;
+    });
+};
+```
+
+and to use:
+```
+{
+    $lookup: (item) => ({
+        from: hobbies,
+        localField: "_id",
+        foreignField: "name",
+        as: "hobby",
+    }),
+},
+```
+
+## I think you're projecting 📽️
+```
+agg.$project = (data, callback) =>
+    data.map((item) => {
+        const result = {};
+        const fields = callback(item);
+        Object.entries(fields).forEach(([key, value]) => {
+            if (value === 1) {
+                const path = key.split(".");
+                let current = item;
+                path.forEach((pathItem) => {
+                    current = current[pathItem];
+                });
+                result[key] = current;
+            } else if (typeof value === "string" && value.startsWith("$")) {
+                value = value.slice(1);
+                const path = value.split(".");
+                let current = item;
+                path.forEach((pathItem) => {
+                    current = current[pathItem];
+                });
+                result[key] = current;
+            }
+        });
+        return result;
+    });
+```
+
+## I think you're projecting 📽️ (cont'd)
+
+```
+{
+    $project: (item) => ({
+        _id: 0,
+        hobbyists: "$count",
+        name: "$hobby.name",
+        description: "$hobby.description",
+        sportPlayers: "$hobby.players",
+    }),
+},
+```
+
+## Let's put it all together 🧩
+
+```
+const aggregate = (data, pipeline) => {
+    return pipeline.reduce((acc, item) => {
+        const [key, callback] = Object.entries(item)[0];
+        return agg[key](acc, callback);
+    }, data);
+};
+```
+
+et voila!
+
+## Let's try it out!
+
+## The data 📁
+
+```
+const people = [
+    // ...
+    { _id: 38119978, name: 'Joe P', age: 31, hobbies: [ 'baseball' ] },
+    { _id: 3495750, name: 'Jen', age: 30, hobbies: [ 'golf' ] },
+    { _id: 52866219, name: 'Jim H', age: 28, hobbies: [ 'golf' ] },
+    { _id: 4243439, name: 'Jimmy', age: 27, hobbies: [ 'golf' ] },
+    { _id: 71819725, name: 'Jimmie S', age: 32, hobbies: [ 'baseball', 'golf', 'tennis' ] },
+    { _id: 67557696, name: 'John A', age: 25, hobbies: [ 'baseball', 'golf' ] },
+    //...
+};
+```
+
+The hobbies "collection"
+```
+const hobbies = [
+    { _id: 1, name: "baseball", players: 104220, description: "Truly the best sport ever", },
+    { _id: 2, name: "golf", players: 14040, description: "Also the best sport ever", },
+    { _id: 3, name: "tennis", players: 2142, description: "back and forth", },
+];
+```
+
+## The pipeline 🧰
+
+```
+const pipeline = [
+    { $match: (item) => item.age > 25 && item.age < 32, },
+    { $unwind: (item) => "hobbies", }, 
+    { $group: (item) => item.hobbies, },
+    {
+        $lookup: (item) => ({
+            from: hobbies,
+            localField: "_id",
+            foreignField: "name",
+            as: "hobby",
+        }),
+    },
+    {
+        $project: (item) => ({
+            _id: 0,
+            hobbyists: "$count",
+            name: "$hobby.name",
+            description: "$hobby.description",
+            sportPlayers: "$hobby.players",
+        }),
+    },
+    { $sort: (a, b) => b.hobbyists - a.hobbyists },
+];
+```
+
+## run it!
+
+.image https://asciinema.org/a/HqSeOHusScPf4USvS8y00oV3c.svg 500 _
+[prove it](https://asciinema.org/a/HqSeOHusScPf4USvS8y00oV3c)
+
+## run it! (cont'd)
+
+```
+// run the pipeline
+const result = aggregate(data, pipeline);
+console.log(result);
+```
+
+"a list of hobbies with the number of hobbyists, the name, description, and number of players for each sport, sorted by the number of hobbyists in descending order."
+```
+[
+    { 
+        hobbyists: 11, 
+        name: 'baseball', 
+        description: 'Truly the best sport ever', 
+        sportPlayers: 104220 
+    },
+    { hobbyists: 10, name: 'golf', description: 'Also the best sport ever', sportPlayers: 14040 },
+    { hobbyists: 6, name: 'tennis', description: 'back and forth', sportPlayers: 2142 }
+]
+```
+
+
+## Build a Mongo-killer database ✅
+
+## Back to Mongo 🐢
+
+## General form
+
+.image /images/mongo-pipeline.png _ 800
+
+- Seems loosely inspired by Unix pipelines, Hadoop MapReduce, etc.
+- a `find`++
+- _somewhat_ of an answer to SQL's flexibility (more on that later)
+
+## Aggregation stages vs SQL
+
+.image /images/mongo-agg-vs-sql.png _ 700
+
+## Aggregation Framework Tradeoffs
+- tradeoff spectrum:
+    - "i/o + processing **here** versus i/o + processing **there**"
+    - multitenancy vs single-tenant: aggregations are running in a crowd, lambda is running by itself
+    - network latency: time to fetch vs time to build
+    - maintenance: generally more maintenance for aggregation framework usage
+    - JS is very fast
+- questions to ask:
+    - can I do this with a simple query?
+    - am I dealing with a _lot_ of data?
+    - can my data model be changed to avoid lots of $lookups?
+
+## Aggregation stages vs SQL (cont'd)
+- limitations
+    - 1000 pipelines (please never do this)
+    - 100MB ram limit
+    - `allowDiskUseByDefault` to spill over
+        - not recommended, but it's there
+        - needing this is a red flag (simlar to `swappiness`)
+- overall: _less_ good at its goal than SQL, other DSLs; but it's what we've got
+
+## the big picture (again)
+.image /images/mongo-pipeline.png _ 800
+
+## Aggregation stage types
+- $match: filter documents
+- $group: group documents
+- $sort: sort documents
+- $project: project documents
+- $unwind: unwind documents
+- $lookup: lookup documents
+- $skip: skip documents
+- $limit: limit documents
+
+## Aggregation stage types (cont'd)
+- $out: output documents to a collection
+- $sample: randomly sample documents from a pipeline
+- $facet: Processes multiple aggregation pipelines within a single stage on the same set of input documents
+- $bucket: fancy group by
+- $bucketAuto: still-fancier group by
+- $addFields: add fields to documents
+- ...more
+
+## $match
+
+## $match(box) Twenty
+- think `filter()`
+- filters documents
+- can use expressions
+- can use indexes
+- can be used multiple times
+    - Mongo will "coalesce" them into a single $match where possible
+- can be used to filter out documents before expensive stages
+
+## $unwind 
+
+## $unwind 
+- think 'map() within a map()'
+- useful for working with nested arrays
+- creates a new document for each item in the array
+
+.image /images/mongo-unwind.png _ 800
+
+
+## $unwind (cont'd)
+.image /images/mongo-unwind-2.png _ 800
+
+## Accumulators
+- think `reduce()`
+- $sum, $avg, $min, $max, $push, $addToSet, $first, $last (and more)
+- can be used to compute values across documents
+- see [quick reference](https://www.mongodb.com/docs/manual/meta/aggregation-quick-reference/) for more
+
+## Grouping
+- think `reduce()`
+- $group: group documents together based on something (attribute, computed attribute, etc.)
+- very useful for transforming data for compputation or analytics use-cases
+- `_id` field is the "grouping key"
+    - can be any valid expression
+    - usually single field, but can be multiple fields
+
+## Aggregation framework best practices
+- buy your way "into" the complexity; use regular queries first
+- beware of nested `$lookup`s
+- can I re-model the data to make it easier to query?
+- be aware of compute / maintenance tradeoffs
+- $match early and often
+- break up complex pipelines into smaller pipelines (fragments)
+- watch out for $unwind data expansion (high number of items in array)
+- hit a $limit early if you can
+- send against read-only or secondary nodes if at all possible
+- watch out for query planner obfuscation
+
+## Questions?
