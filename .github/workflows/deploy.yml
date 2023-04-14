@@ -1,4 +1,4 @@
-name: Deploy to Fly
+name: Deploy to talks.ifelse.io
 on:
     push:
         branches:
