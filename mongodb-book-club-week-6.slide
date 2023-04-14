@@ -1,0 +1,247 @@
+# MongoDB Book Club 📕
+Week 6: Chapter 8 - Transactions
+14 Apr 2023
+Tags: books, architecture, mongodb, databases
+Summary: Week 6 of the FloQast MongoDB book club
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Welcome!
+
+## Intro
+- 👋 Hi, I’m Mark!
+- 👴 At FQ since 2016
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, le monolith etc.
+- ✅ I’m a Staff Software Engineer focused on Compliance (Rhea, Skoll, Tarvos, Ymir, &c)
+- 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
+- 📆 I hold office hours every Friday from 1-2pm PST - join if you want! Link in my slack profile or ask me for it
+
+: take 30s at most for this slide
+
+## Book Club Format / Resources 📕
+
+- #mongodb-book-club channel in Slack
+- **summary**
+- **Q&A**
+- **Breakouts**
+- **Regroup** / **wrap / logistics**:
+
+## What could go wrong when running a database?
+## 😱 EVERYTHING 😱
+## Things That Can Go Wrong 🚨
+- hardware or software could fail
+- client could crash or disconnect part-way through an operation
+- network interruptions, internal or external
+- multiple clients can write at the same time
+- stale read: client may read data that is only partially updated
+- race conditions in general
+
+## What to do?! 🤔
+
+## Transactions! 🤝
+
+## What is a transaction? 🤔
+
+_A way for an application to group several reads and writes into a logical unit of work that can be executed as a single operation. If any of the operations fail, the entire logical unit fails, and the application can retry the transaction._
+
+- grouped reads and writes
+- executed conceptually as a single operation
+- reduces states to 2 possibilities:
+    - success: commit
+    - failure: abort & rollback
+- simplifies the application logic & programming model
+- not every database supports transactions and not every application needs transactions
+
+## History of Transactions 📜
+- conceptual analog: bank transaction
+- ~1975, IBM System R (first commercial RDBMS)
+- Today, MySQL, Postgres, Oracle, SQL Server, etc. all still use a very similar style
+- NoSQL databases emerged in mid-to-late 2000s
+    - Focused on horizontal scalability, weakened consistency guarantees
+    - Went without transactions, some added them later
+
+: been around for a while; started in SQL-based RDBMSs and have spread to other types of databases
+
+## What can we use these for? 🤔
+
+## Transactions in Practice
+
+- **Messaging**: While using Slack, you might decide to create a private channel with a few colleagues. You realize that you have added the wrong person to this channel and you want to remove them. When you do so, you receive a confirmation that this update was successful. This change updates an entry in a database server. If the server crashes two seconds later, the expectation is that the user will have been removed and will no longer see the channel.
+
+- **Ads**: Google uses Spanner (global SQL database powered by atomic clocks) to ensure that ad bids / buys / etc. are globally consistent. They support "external consistency" where transactions commit in an order that is reflected in their commit timestamps, and these commit timestamps reflect real time so you can compare them to your watch
+
+- **Banking**: Withdrawing $20 in Account A and depositing into Account B, and ensuring that the system never encounters a case where the money is lost, both accounts are credited, or the transaction is acknowledged as successful, only to later be reversed.
+
+: useful for basically all mission-critical software / applications
+
+## Transactions in Practice (cont.)
+
+- **secondary database indexes**: if you have a secondary index on a field, you need to update the index when you update the document. Not "transactions" from the point of the client/developer, but effectively are from the point of view of the database.
+
+- **denormalized data**: sync data across objects that you have denormalized (stored partial copies of). For example, if you have a user object and a post object, and you want to show the user's name on the post, you need to update the post object when the user object changes. Common to virtually all NoSQL databases
+
+: also useful for these use-cases, even though not quite the same as the others
+
+## Cool! Let's learn more! 🤓
+
+## Time for some chemistry 🧪
+
+## ACID
+
+: ask who's heard of ACID
+
+## ACID Can be Toxic ⚠️
+- ⚠️ can be a buzzword! ⚠️
+- ⚠️ not a standard ⚠️
+- ⚠️ not magic ⚠️
+- ⚠️ not a law ⚠️
+- ⚠️ different for virtually all databases ⚠️
+- heavily relied on by marketing teams for database companies
+- instead, learn about distributed systems, CAP theorem, and the tradeoffs involved
+- PLEASE learn the actual nuances of your given database's implementation of transactions etc.
+- Drama: Mongo & Jepsen - see [https://jepsen.io/analyses/mongodb-4.2.6](https://jepsen.io/analyses/mongodb-4.2.6) and [https://www.mongodb.com/jepsen](https://www.mongodb.com/jepsen)
+
+: Make a joke here or something
+
+## You've Been Warned... 🚨
+
+: I don't want to hear folks talking about how ACID means its a perfect database
+
+## ACID
+- coined in 1983 by Theo Härder and Andreas Reuter
+- Acronym for a set of safety terms/guarantees that fault-tolerant systesms can provide
+- Each ACID is different, depends on implementation and varies by database
+- BASE: sometimes used to describe other databases
+    - **B**asically **A**vailable
+    - **S**oft state
+    - **E**ventual consistency
+- **A**tomicity
+- **C**onsistency
+- **I**solation
+- **D**urability
+
+## Atomicity
+- You might have heard as "All or nothing"
+- Maybe better: "cancelability" or "abortability"
+- In general, means "cannot be broken down any further"
+- In the context of transactions, means "all operations in the transaction succeed or none of them do"
+- For example:
+    - write to collection A
+    - read from collection B
+    - write to collection C
+    - If any of these fail, the entire transaction fails and the application can retry
+    - no partial updates possible
+
+## Consistency
+- bit overloaded as a term; it can mean/refer to:
+    - replica consistency
+    - consistent hashing
+    - CAP theorem => linearizability (correct under concurrent access)
+- in ACID: provides a "consistent" view of the data, database enforces constraints
+
+## Isolation
+- _Concurrently running transactions shouldn’t interfere with each other_
+- DB ensures that the result of transactions running is the same as if they had run serially even if they were run concurrently
+- there are various levels of isolation, each with their own set of tradeoffs
+- along with Atomicty, probably the most important part of _ACID_ => _AI_
+
+.image /images/isolation-table.png _ 800
+
+: - everything is fine if no one accesses the same data at the same time. but what if they do?
+: - I knew I could incporate AI into this talk somehow
+
+## isolation levels
+.image /images/consistency-models-legend.png _ 800
+
+## isolation levels
+.image /images/consistency-models.png _ 800
+
+: notice how on the y-axis, you see availability go up as you go down, but lose consistency. See CAP theorem
+
+: mongo has "read committed" level of isolation
+
+## race condition example: 
+.image /images/counter-race-condition.png _ 800
+
+: this is a common example of a race condition. Mnay databases support $inc-like operators to avoid having to deal with this in your app code
+
+## Durability
+- Data is persisted to disk or some stable storage media
+- If the system crashes, the data is not lost
+- Usually means the use of a WAL or similar mechanism
+- Different approaches:
+    - Redis: everything happens in memory, things are synced to disk periodically
+    - MongoDB: everything is written to the journal, which is continually written to disk & replicated
+    - MySQL / Postgres: everything is written to the WAL, which is continually written to disk & replicated
+
+: this one is kinda redundant - if you have a database that doesn't have durability, it's not useful for much
+
+## ACID / Transactions Recap
+- **Atomic**: runs as a group and can be cancelled/retried
+- **Consistent**: database enforces constraints
+- **Isolated**: concurrent transactions don't interfere with each other
+- **Durable**: data is persisted to disk
+- _especially_ useful for updating multiple objects at once
+    - useful for single objects too. e.g. what if only half of an object is received?
+- single-document updates not _really_ transactions, although they can still have ACID properties
+
+## MongoDB Transactions 📝
+- MongoDB 4.0 introduced multi-document transactions: transactions that span a single shard
+- MongoDB 4.2 introduced distributed transactions: transactions that span multiple shards
+- adding multi-document transactions was a huge effort (see pg. 316)
+- Prior to multi-document transactions, MongoDB supported single-document transactions that were "ACID" in nature
+    - cf. importance of data modeling in Mongo
+- supports "snapshot" isolation level: transactions can read data from a “snapshot” of data committed at the time the transaction starts. Any conflicting updates will cause the transaction to abort.
+
+## Some Code!
+
+```
+try {
+    await session.withTransaction(async () => {
+      const coll1 = client.db('mydb1').collection('foo');
+      const coll2 = client.db('mydb2').collection('bar');
+      // Important:: You must pass the session to the operations
+      await coll1.insertOne({ abc: 1 }, { session });
+      await coll2.insertOne({ xyz: 999 }, { session });
+    }, transactionOptions);
+  } finally {
+    await session.endSession();
+    await client.close();
+  }
+```
+
+- need to pass the "session" to the operations
+- must use "primary" as the read pref for the session (otherwise no reason to use a transaction at all)
+
+## Transaction Caveats
+- Since transactions are atomic, you can retry them if they fail. This is useful for things like network errors, etc. Watch out for double-action, overloads, etc.
+- less performant generally
+- Mongo doesn't _really_ want you to use transactions (by default anyway)
+> "In most cases, multi-document transaction incurs a greater performance cost over single document writes, and the availability of multi-document transactions should not be a replacement for effective schema design. For many scenarios, the denormalized data model (embedded documents and arrays) will continue to be optimal for your data and use cases. That is, for many scenarios, modeling your data appropriately will minimize the need for multi-document transactions."
+
+## When do you REALLY need transactions?
+- anywhere you need data kept in sync across multiple documents, simultaneously
+    - e.g. embedded / denormalized data: store a partial copy of another document in a field, need to update both
+    - e.g. reference / normalized data: store a reference to another document, need to update both in tandem
+    - example: need to update the TLC ID across 1000 different things
+- rule of thumb: **use transactions to sync denormalized data**
+- Use transactions for mainly for the atomicity (no partial updates)
+- Not useful for complex causal updates: e.g. collaborative editing, realtime systems, etc.
+
+## When do you NOT need transactions?
+- single document updates
+- _again_: you don't need transactions for single document updates where the read/write preferences are set strongly. Already atomic, and you can't have partial updates, occurs on a single node, etc.
+
+## Questions!?
+
+## Sources
+- *Bradshaw, Shannon; Brazil, Eoin; Chodorow, Kristina. MongoDB: The Definitive Guide (p. 313). O'Reilly Media. Kindle Edition.*
+- *Kleppmann, Martin. Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems. O'Reilly Media. Kindle Edition.*
+- [Achieving ACID Transactions in a Globally Distributed Database](https://fauna.com/blog/acid-transactions-in-a-globally-distributed-database)
+- [Jepsen Disputes MongoDB’s Data Consistency Claims](https://www.infoq.com/news/2020/05/Jepsen-MongoDB-4-2-6/)
+- [Isolation, Database systesms](https://en.wikipedia.org/wiki/Isolation_(database_systems))
+- [Transactions, MongoDB Documentation](https://www.mongodb.com/docs/manual/core/transactions/)
