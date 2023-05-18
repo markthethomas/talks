@@ -1,0 +1,339 @@
+# MongoDB Book Club 📕
+Week 6: Chapter 9 - Application Design
+28 Apr 2023
+Tags: books, architecture, mongodb, databases
+Summary: Week 6 of the FloQast MongoDB book club
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Welcome!
+
+## Intro
+- 👋 Hi, I’m Mark!
+- 👴 At FQ since 2016
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, le monolith etc.
+- ✅ I’m a Staff Software Engineer focused on Compliance (Rhea, Skoll, Tarvos, Ymir, &c)
+- 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
+- 📆 I hold office hours every Friday from 1-2pm PST - join if you want! Link in my slack profile or ask me for it
+
+: take 30s at most for this slide
+
+## Book Club Format / Resources 📕
+
+- #mongodb-book-club channel in Slack
+- **summary**
+- **Q&A**
+- **Breakouts**
+- **Regroup** / **wrap / logistics**:
+
+## Let's build some models!
+
+## First...let's take a step back
+
+## way back
+
+.image /images/space-3.jpg _ 700
+
+## more 
+
+.image /images/space-4.jpg _ 700
+
+## further
+
+.image /images/space-2.jpeg _ 325
+
+## ok, maybe too far 😅
+
+.image /images/space-1.jpg _ 500
+
+## What are we doing here?
+
+: why are we we learning about MongoDB? What does it help us do? Is it helpful to know the four components of an ObjectID? 
+: to learn about arcane database technology? to impress our friends!
+
+## Solving problems!
+
+## But...
+- not always technical
+- not always with code
+- usually with specialized tools, techniques, and approaches
+- always requires a blend of techniques, people, time, effort, and approach
+
+## (Excellent) Product Engineering
+
+Happens when:
+- the problem is understood
+- requirements for the solution are understood / clear
+
+and most importantly
+
+- available tools & techniques are well understood
+- the tradeoffs of the tools & design are clear
+- iteration is possible
+
+## Otherwise
+
+.video ./images/everly-code.mp4 video/mp4 _ 750
+
+## Application design 
+
+## Let's model some data!
+
+.image /images/legos-1.png _ 700
+
+## Back to SQL vs NoSQL
+
+## Different approaches
+
+.image /images/mongo-vs-sql-reads.png _ 900
+
+: remember that MongoDB is a noSQL DB and its tradeoffs exist in that spectrum
+
+## Migrating
+
+.image /images/mongo-vs-sql-caching.png _ 900
+
+## Migrating (cont.)
+
+.image /images/sql-migrations.png _ 900
+
+
+## Normalizing vs Denormalizing
+
+## 
+
+.image /images/lego-2.png _ 700
+
+## Normalizing vs Denormalizing (cont.)
+
+"store data how you read it"
+
+definitions:
+
+- **normalizing**: breaking up data into separate collections. Data only exists "once".
+- **denormalizing**: embedding data into a single collection (or a few collections). Data exists in multiple places.
+
+- called "denormalization" because it's the opposite of of the "normal forms" in relational databases
+- originates in a time where storage space was incredibly expensive and sparse
+- "normal forms" are a set of rules for designing relational databases ("first normal form", "second normal form", etc.)
+- in practice: storing little bits of data elsewhere
+
+## 
+
+.image /images/meme-0.jpg _ 460
+
+## Denormalizing
+
+- tends to make writes slower, reads faster (more to update, less to read)
+- tends to make writes more complex, reads simpler
+- works better for static or rarely-changing data
+- more costly for highly-dynamic data; consider time-series or other approaches
+
+examples: user, post, comments
+
+normalized: 
+- collections for users, posts, comments. No embedding.
+
+denormalized: 
+- embedding comments in a post
+- embedding a user's name in a post
+- embedding a user's name in a comment
+
+## Schema Design
+Things to consider:
+- data **access** patterns
+    - frequency, latency, consistency
+    - reads: asymmetrically more reads than writes
+    - writes
+- **relationships** between data
+- **cardinality** of relationships
+    - one-to-one
+    - one-to-many
+    - many-to-many
+- data **growth** over time: e.g. recs, crons, audit logs at FQ
+
+## Schema Design (cont.)
+
+- "one to many" vs "one to few"
+- embedding only gets you so far
+- overflow / outlier patterns can work, probably use a different datastore though
+- get rid of old data automatically if product requirements allow (TTL, capped, etc.)
+    - cf. time-sharding
+
+: a few extra idea to wrap up this section
+
+## What data should we store?
+- user transactions: ✅
+- preferences: ✅
+- event data: ⚠️
+- log data: ❌
+- time-series data: ⚠️
+- binary media: ❌
+- user sessions: ✅
+- user profiles: ✅
+- dense text: ⚠️
+- vectors: ❌
+- geo data: ❌
+
+: worth asking what kind of data we actually need to store in something like Mongo
+
+## Migrating Data
+
+.image /images/migration.png _ 900
+
+## Migrating Data (sql)
+
+.image /images/sql-migrations.png _ 900
+
+## Migrating Data (cont.)
+- Moving data between forms, locales, etc.
+- Benefits:
+    - data moves towards the read/access pattern
+    - data moves towards the "real" relationships over time
+- Costs:
+    - complexity
+    - risk
+    - mental burden
+- especially important capability in NoSQL world
+
+## Consistency
+- loaded term!
+- replica set options:
+    - read concern
+        - local
+        - available
+        - majority (most common)
+        - linearizable (may wait for concurrent writes)
+        - snapshot
+    - write concern
+        - majority: 51% of quorum
+        - custom int: pick a number
+
+
+## Schema patterns
+
+## 
+
+.image /images/lego-3.png _ 700
+
+## polymorphic
+- I don't like this term
+- documents vary slightly
+- determine differences based on a key or keys
+- example: `type` key
+- tradeoffs:
+    - one collection to query
+    - multiple types of data to index / keep track of
+
+```
+{
+  _id: ObjectId,
+  name: String,
+  entityType: String, // e.g. 'person', 'company', or 'organization'
+  commonField1: String,
+  commonField2: Number,
+  specificFields: Object
+}
+```
+
+## Bucket
+
+Break up data based on some key or keys
+
+```
+{
+  _id: ObjectId,
+  sensorId: String,
+  year: Int,
+  month: Int,
+  day: Int,
+  hour: Int,
+  measurements: [
+    {
+      timestamp: Date,
+      value: Number
+    }
+  ]
+}
+```
+
+## Outlier
+When some entries require more data than others ("Wil Wheaton" example)
+
+```
+{
+  _id: ObjectId,
+  name: String,
+  type: String,
+  data: Object,
+  followers: [ObjectId],
+  more: [ObjectId] // pointer to other docs
+}
+```
+
+## Computed
+store computed data that would need to be computed frequently / on-demand
+    
+```
+{
+_id: ObjectId,
+price: Number,
+taxRate: Number,
+finalPrice: Number // computed as price * (1 + taxRate)
+}
+```
+
+## Subset
+
+Store only the "most important" fragments of data
+
+```
+{
+  _id: ObjectId,
+  title: String,
+  content: String,
+  author: String,
+  tags: [String],
+  comments: [
+    {
+      author: String,
+      comment: String,
+      timestamp: Date
+    }
+  ]
+}
+
+```
+
+## Subset (cont.)
+
+```
+{
+  _id: ObjectId,
+  mainDocId: ObjectId, // reference to the main document
+  title: String,
+  author: String,
+  tags: [String]
+}
+```
+
+## Patterns at FQ
+- periods
+- autorec
+- recs
+- companies
+- tlc
+
+
+## Others
+- document versioning
+    - main doc + version history of changes
+    - maybe use delta encoding
+- tree pattern 
+- placeholder pattern: store an empty doc that gets filled later 
+
+## Questions?

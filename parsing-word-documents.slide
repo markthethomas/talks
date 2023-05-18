@@ -1,0 +1,116 @@
+# Parsing Word Documents 📕
+A (maybe) Interesting Talk about a Definietly Boring Thing
+5 May 2023
+Tags: parsing, word
+Summary: A (maybe) Interesting Talk about a Definietly Boring Thing
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Users Have Documents
+
+## Excel
+
+## Word
+
+## PowerPoint
+
+## Visio
+
+## etc.
+
+## Where does the data go?
+
+## In the docs
+
+## We need the data
+
+## So we parse the docs
+
+## To get the data
+
+## Cf. "le monolith"
+
+## OpenOfficeXML
+
+[Let's explore](http://officeopenxml.com/anatomyofOOXML.php)
+
+## What to do?
+
+## Maybe: parse the XML?
+- XML is a standard
+- XML is a pain to parse
+  - nested tags
+  - attributes
+  - namespaces
+  - etc.
+- We need to understand the structure of the XML, too.
+  - Let's not re-implement word
+
+## Maybe: use C#?
+
+## 🤨
+
+## Maybe: use Java?
+
+## 🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨🤨
+
+## Never again
+
+## What if we could get the text out?
+
+##
+.image /images/word-doc-parsing-1.png _ 400
+
+## unzip 
+.image /images/word-doc-parsing-2.png _ 325
+
+## it's just the DOM!
+.image /images/word-doc-parsing-3.png _ 450
+
+## we _can_ parse text!
+.image /images/word-doc-parsing-4.png _ 350
+
+## use a PEG (parsing expression grammar)
+
+```
+fqml "FQML"
+  = document?
+
+document "Document"
+  = c:(notTag / tag)+ {
+    return {
+      type: "document",
+      body: c
+    };
+  }
+
+ws "whitespace" = [ \t\n\r]*
+
+tagIdentifier = "#FQ" ("-" / ":" / "." / "_") id:([a-zA-Z0-9_.:-]+) {
+  return {
+    type: "tagIdentifier",
+    id: id.join("")
+  };
+}
+
+tagEnd = ws "}" ws {
+    return {
+      type: "tagEnd"
+    };
+```
+
+## le diff!
+.image /images/word-doc-parsing-5.png _ 350
+
+## all together now
+
+.image /images/word-doc-parsing-final.png _ 1025
+
+## reading and writing
+.image /images/word-doc-parsing-6.png _ 600
+
+
