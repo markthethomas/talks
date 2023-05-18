@@ -6,4 +6,4 @@ COPY go.sum ./
 RUN go mod download
 RUN go install golang.org/x/tools/cmd/present@latest
 COPY . .
-CMD [ "present", "-http", ":8080", "-notes", "-play", "false"]
+CMD [ "present", "-http", ":8080", "-notes", "-play=false"]
