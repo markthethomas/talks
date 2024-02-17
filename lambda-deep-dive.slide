@@ -1,0 +1,328 @@
+# AWS Lambda ƛ
+Deep Dive
+16 Feb 2024
+Tags: lambda, architecture, aws, serverless
+Summary: AWS Lambda Deep Dive
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Welcome!
+
+## Intro
+- 👋 Hi, I’m Mark!
+- 👴 At FQ since 2016
+- 👴 Employee #29, #12 left (found this out the other day)
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, www-Close, FQ-UI,etc.
+- ✅ I’m a Staff Software Engineer focused on Compliance
+- 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
+
+
+
+## Agenda
+- History of servers
+- Virtualization
+- Containers
+- AWS Lambda: concepts, lifecycle, tradeoffs
+- Q&A
+
+## baseball is back
+
+.video ./video/shohei.mp4 video/mp4 _ 600
+
+## Servers
+- Everyone wants them (thank you internet)
+- They're expensive
+- Running 1:1 server:cusomter code
+  - not scalable
+  - hard to set up, maintain
+  - wasteful
+
+## 
+
+.image ./images/pixar-server.webp _ 600
+
+## We need... more servers
+
+## a LOT more
+
+## We tried colos
+- you could rent space in a data center
+- *you* buy, install, and maintain the servers
+- the data center provided networking, power, cooling, and physical security
+- server breaks, you go fix it
+- scaling out to more areas means renting more space at more colos
+
+## better! but...
+
+## NEED MOAR SERVERS
+
+## 
+
+.image ./images/pixar-hypervisor.webp _ 600
+
+## Enter Virtualization (and "the public cloud")
+- key innovation: hardware decoupled from software; 1:1 relationship broken
+- Virtualization: _Software emulation of a computer_
+- Hypervisor:
+  - sits between the hardware and the OS
+  - manages virtual machines
+  - Allocate VMs a portion of the host's resources (CPU time, memory space, etc.)
+- allows for guest OS installation
+- companies like AWS also started building data centers you didn't have to manage/go to (the "public cloud")
+
+## 
+
+.image ./images/virtual-vs-non-virtual.jpg _ 800 
+
+: storage virtualization
+
+##
+
+.image ./images/virtual-bare-metal.jpg _ 700
+
+: storage virtualization
+
+## 
+
+.image ./images/virtual-storage.jpg _ 400 
+
+: storage virtualization
+
+## 
+
+.image ./images/virtual-network.jpg _ 900 
+
+: storage virtualization
+
+## That's a lot better!
+- EC2
+- GCP
+- Azure
+- Digital Ocean
+- Linode
+- etc.
+
+## VMs are great, but...
+
+## We need even more servers
+
+## Also, it's a lot of work to get stuff deployed
+
+## Enter... Containers
+
+## 
+
+.image ./images/docker-epic.webp _ 600
+
+## Containers 🐳
+- a way to package and run applications. Not optimized for virtual desktops, etc.
+- Virtualize at the OS level, sharing the host's OS kernel.
+- Lightweight, use fewer resources; start almost instantly.
+- Offer process-level isolation; best for applications.
+- Highly portable, ideal for microservices, and scalable applications.
+- Use Cases:
+  - VMs: Preferred for applications needing full isolation and specific OS environments.
+  - Containers: Used for CI/CD practices, microservices, and applications requiring rapid scaling.
+
+## 
+
+.image ./images/virtual-vs-containers.webp _ 900
+
+## Docker
+- not the only way to run containers, but probably the most popular
+- Not just a file format!
+- Also really fast now on M1,2,3 Macbook Pros
+- a platform for using containers to develop, ship, and run applications
+- more abstracted away from the hardware than VMs
+
+.image ./images/Architecture-of-Docker.png _ 900
+
+## 
+
+.image ./images/pixar-docker.webp _ 600
+
+## Containers are great, but...
+
+## We want to do *even less* work
+
+## Enter AWS Lambda
+
+.image ./images/pixar-lambda.webp _ 550
+
+## AWS Lambda: Serverless Functions
+- Also: Google Cloud Functions, Azure Functions, etc.
+- "Serverless" is a misnomer — it's _all_ servers
+- Takes the idea of containers to the extreme: you don't even have to manage the container, just provide your code
+- AWS Lambda is the most popular, because AWS is the most popular. Also first to market
+- useful for: 
+  - servers that don't need to run all the time
+  - glue-code between services
+  - data processing
+- **fundamental idea: increase utilization *and* charge more per cycle while making things easier for the customer**
+
+## AWS Lambda Basics
+- event-driven serverless (whatever that means) compute service
+- few infra knobs to turn (sorta)
+- powered by Firecracker (KVM-based open-source virtualization technology):
+  - lightweight virtualization technology
+  - secure, fast, and efficient
+  - speed & isolation of VMs, with the speed and density of containers
+  - also powers AWS Fargate
+- KVM based: allows the linux kernel to act as a hypervisor
+- great for events, data processing, and microservices (sometimes)
+
+  *"Before Firecracker, developers had to choose between the security and isolation guaranteed by traditional VM setups and the speed and density offered by container technology."*
+
+##
+
+.image ./images/pixar-firecracker.webp _ 600
+
+## Firecracker architecture
+
+.image ./images/firecracker-arch.png _ 800
+
+## Firecracker architecture (cont.)
+
+.image ./images/firecracker_host_integration.png _ 800
+
+## Lambda Concepts
+- **Function**: your code, packaged up. Receives an event
+- **Trigger**: resource or configuration that invokes a Lambda function
+- **Event**: JSON data about the event that triggered the function
+- **Execution environment**: secure and isolated environment
+- **Instruction set architecture**: x86_64 or arm64
+- **Deployment package**: 
+  - .zip file: included file(s) and dependencies vary by runtime
+  - OCI (Open Container Initiative) image; can come from a Dockerfile. includes the function code, runtime, and dependencies
+- **Runtime**: language-specific environment that runs in an execution environment. 
+  - Node.js, Python, Ruby, Java, Go, .NET, etc.
+
+## Lambda Concepts (cont.)
+- **Layer**: additional code or data for your function. 
+- **Extension**: additional code you can provide to augment your function; two types, internal and external
+- **Concurrency**: # of requests that your function is serving at any given time; limited by default, can be increased
+- **Qualifier**: a version or alias of a particular function
+- **Destination**: somehwere in AWS you can send the results of a function
+
+## Lambda Extensions
+
+.image ./images/telemetry-api-concept-diagram.png _ 800
+
+## Lambda Layers
+
+.image ./images/lambda-layers-diagram.png _ 550
+
+## Lambda Lifecycle
+- init -> invoke -> shutdown
+- extension init
+- runtime init
+- function init
+- invoke
+- (repeated invoke)
+- runtime shutdown
+- extension shutdown
+
+.image ./images/Overview-Successful-Invokes.png _ 800
+
+## Runtimes: zip vs. container
+- zip: 
+  - AWS manages the runtime
+  - you manage the code
+  - less control
+  - can use extensions, layers, etc.
+- container:
+  - you manage the runtime
+  - AWS manages the container
+  - more control: custom binaries, pick your own version, etc.
+  - can't use layers (but why would you?)
+
+## Concurrency
+- default: 1000
+- can be increased; just ask Amazon if you can pay them more money
+- provisioned: AWS will pre-initialize a number of functions for you
+- reserved: max number of concurrent executions for a function. % of the total concurrency for the account.
+
+## Allocated memory
+- AWS gives you fewer knobs to turn
+- 128MB - 10GB
+- CPU and network bandwidth scale with memory (not normal)
+- can use AWS Power Tuning to find the optimal memory size for your function
+
+## Cold Starts ❄️
+- a _you_ problem, not an AWS problem :D 
+- invocations where the function has not gone through an initialization phase
+- factors that affects colds starts:
+  - language runtime: Java is slower due to how the JVM works, for example. 
+  - layers: presence of layer(s) can increase latency, but primarily due to more code to load/run
+  - memory: less memory allocated to the function, the slower it will start
+  - code size: larger code size, longer cold start (in general, varies by language)
+  - VPCs w/ ENIs (less so now)
+- different types:
+  - new code, new initialization needed
+  - new scale, new workers needed
+
+## Fixing Cold Starts
+- use a language with a fast startup time (Go, Node.js, Python)
+- increasing memory *won't* work: Module initialization is always run at full power
+- bundling code:
+  - reduces the amount of code that needs to be loaded
+  - can improve the code execution path
+- provisioned concurrency: just use a server? lol
+
+## 14MB cold start
+.image ./images/cold-start-vs-mem-14mb.png _ 900
+
+## 35 MB cold start
+.image ./images/cold-start-vs-mem.png _ 900
+
+## Code size matters more than memory for cold starts 
+
+## Lambda tradeoffs & thoughts
+- natively integrated into AWS
+- no servers to manage (lots of other stuff to manage though)
+- easy to glue together services
+- higher cost per cycle vs "regular" server
+- mental model mismatch/impedence: easier, but harder
+- no built-in networking (need to use ALB, API Gateway, function URL, etc.)
+- harder to build for non-JSON-HTTP stuff (e.g. websockets, file attachments, binary data, etc.)
+- AWS: great at infra, meh at DX
+  - infra sprawl: SAM vs serverless vs Terraform vs CloudFormation vs CDK vs...
+- local dev... can be tricky
+- serverless works _great_ when the DX is great. Not a magic bullet.
+
+## 
+
+.image ./images/serverless-arch.webp _ 750
+
+## Lambda Alternatives:
+- Fargate
+- EC2
+- Fly.io: really easy containers
+- Cloud Run (GCP)
+- vercel (formerly Zeit)
+
+## Demo 
+- lambda: invoke
+- [copilot](http://demo-s-publi-mdrkjzjseuto-440878288.us-west-2.elb.amazonaws.com/)
+- fly.io: launch, deploy
+
+## Recap
+
+.image ./images/virtual-cloud.avif _ 800
+
+## Q&A
+
+## Sources
+- https://docs.aws.amazon.com/lambda/latest/dg/welcome.html
+- https://www.koyeb.com/blog/firecracker-microvms-lightweight-virtualization-for-containers-and-serverless-workloads
+- https://kreuzwerker.de/en/post/should-you-use-lambda-containers
+- https://www.redhat.com/en/topics/virtualization/what-is-KVM
+- https://firecracker-microvm.github.io/
+- https://www.koyeb.com/blog/what-is-a-microvm
+- https://github.com/aws/copilot-cli
+- https://www.mongodb.com/cloud-explained
+- https://hichaelmart.medium.com/shave-99-93-off-your-lambda-bill-with-this-one-weird-trick-33c0acebb2ea

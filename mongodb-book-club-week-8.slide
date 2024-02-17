@@ -1,0 +1,164 @@
+# MongoDB Book Club 📕
+Week 8: Replication
+26 May 2023
+Tags: books, architecture, mongodb, databases
+Summary: Week 6 of the FloQast MongoDB book club
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Welcome!
+
+## Intro
+- 👋 Hi, I’m Mark!
+- 👴 At FQ since 2016
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, le monolith etc.
+- ✅ I’m a Staff Software Engineer focused on Compliance (Rhea, Skoll, Tarvos, Ymir, &c)
+- 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
+- 📆 I hold office hours every Friday from 1-2pm PST - join if you want! Link in my slack profile or ask me for it
+
+: take 30s at most for this slide
+
+## Book Club Format / Resources 📕
+
+- #mongodb-book-club channel in Slack
+- **summary**
+- **Q&A**
+- **Breakouts**
+- **Regroup** / **wrap / logistics**:
+
+
+## What is Replication?
+
+- Replication is the process of synchronizing data across multiple servers.
+- MongoDB uses replication to ensure high availability, data redundancy, and disaster recovery.
+- Mongo has several forms of replication => Replica Sets, Sharding, &c
+
+## Why Replication?
+
+- Provides data redundancy and protects the database from the loss of a single server.
+- Increases data availability with multiple copies of data on different database servers.
+- Ensures disaster recovery.
+- Improves read capacity by allowing read operations on secondary replicas.
+- Allows maintenance to be performed without downtime.
+
+## How does Replication Work in MongoDB?
+
+- MongoDB uses a replication model called "replica set".
+- A replica set is a group of MongoDB servers that maintain the same data set.
+- One node is a primary node that receives all write operations.
+- All other nodes are secondary nodes that replicate the primary's oplog and apply the operations to their data sets.
+- Choose an odd number, 3,5,7,9 to avoid split-brain syndrome
+
+## Replica Set Members
+
+- **Primary**: The main node in the set. Can perform read and write operations.
+- **Secondary**: Nodes that replicate the primary node's data. By default, they only perform read operations.
+- **Arbiters**: Nodes that do not contain data but participate in elections. Prefer a data node over these.
+
+## Replication Lag
+
+- The time difference between the latest changes in the primary and the application of those changes to a secondary.
+- If it gets too high, things are bad
+
+## Elections
+
+- A mechanism to elect a new primary when the current primary is unavailable.
+- Elections can be triggered by several factors, e.g., adding/removing nodes, network partitioning.
+
+## cRAFT time!
+
+- RAFT: http://thesecretlivesofdata.com/raft/
+
+## MongoDB Oplog
+
+- The operation log, or "oplog," is a special capped collection that keeps a rolling record of all operations that modify the data stored in the databases.
+- operations are idempotent, so they can be applied multiple times without changing the result beyond the initial application.
+
+## Read and Write Concerns
+
+- You can specify the read preference to control where MongoDB routes read operations in a replica set.
+- Write concern describes the level of acknowledgment requested from MongoDB for write operations.
+- options:
+  - primary: default, read from primary
+  - primaryPreferred: read from primary if available, otherwise read from secondary
+  - secondary: read from secondary
+  - secondaryPreferred: read from secondary if available, otherwise read from primary
+  - nearest: read from nearest node
+
+
+## Summary
+
+- MongoDB's replication provides redundancy and increases data availability.
+- MongoDB uses replica sets for replication.
+- Election of a new primary is automatic and is handled by the replica set itself.
+- Understanding Read and Write concerns are vital to data consistency and availability.
+
+
+
+
+
+
+
+
+## Sharding 🧩
+
+## What is Sharding?
+
+- Sharding is a method for distributing data across multiple machines.
+- MongoDB uses sharding to support deployments with very large data sets and high throughput operations.
+
+## Why Sharding?
+
+- Allows MongoDB deployments to store data across multiple machines.
+- "replica set of replica sets"
+- Makes it easier to scale horizontally, by adding more machines to support data growth and capacity.
+- Improves performance by distributing the load over multiple servers.
+- Can shard individual collections
+
+## 
+
+.image /images/mongo-architecture.png _ 800
+
+##
+
+.image /images/vitess-architecture.svg _ 800
+
+## Sharding Components
+
+- **Shard**: Contains a subset of the sharded data. Each shard is a separate database instance.
+- **Mongos**: Acts as a query router, providing an interface between client applications and the sharded cluster.
+- **Config servers**: Store the cluster’s metadata, which includes the mapping of data to shards.
+
+## Shard Keys
+
+- The key that determines the distribution of the collection’s documents among the cluster’s shards.
+- even load distribution is important
+- can vary by domain, business use-case, how data is accessed, &c
+
+.image /images/sharding-keyspace.png _ 1000
+
+## Sharding Strategies
+
+- **Range-based sharding**: Documents are partitioned across shards according to the shard key's value. Think "alphabetical"
+- **Hash-based sharding**: Documents are distributed according to the hash value of the shard key. Think "sha-512"
+- shard keys:
+  - high cardinality
+  - not arrays
+  - can't use special index types
+
+## Sharding Challenges
+
+- Choosing the right shard key can be complex and depends on your application's data access patterns.
+- Overcoming the limitations of queries in a sharded environment.
+  - scatter-gather
+  - uneven sharding key distribution
+
+## Summary
+
+- MongoDB's sharding enables horizontal scaling and supports large data sets.
+- Sharding involves distributing data across multiple servers, enhancing performance.
+- Choice of sharding strategy and shard key is crucial for optimal performance.
