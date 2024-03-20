@@ -1,0 +1,304 @@
+# Approaching The Event Horizon: NPM Deep Dive
+Deep Dive
+20 Mar 2024
+Tags: npm, node.js, node_modules
+Summary: NPM Deep Dive
+
+Mark Thomas
+Staff Software Engineer, FloQast
+markt@floqast.com
+https://ifelse.io
+@markthethomas
+
+## Welcome!
+
+## Intro
+- 👋 Hi, I’m Mark!
+- 👴 At FQ since 2016
+- 👴 Employee #29
+- 👷‍♂️ Worked on Compliance, Autorec, Analytics/Dashboards, www-Close, FQ-UI,etc.
+- ⚙️ New JIRA Admin
+- ✅ I’m a Staff Software Engineer focused on Compliance
+- 💾 I’m interested in product engineering, performance, front-end, software architecture, databases, and distributed systems
+
+## Agenda
+- What is NPM?
+- NPM CLI
+- NPM Registry
+- NPM Packages
+- NPM Scripts
+- NPM Tips & Tricks
+
+## What is NPM?
+- a CLI
+- a registry
+- a package manager
+
+## Brief History
+- inspired by the CPAN (Comprehensive Perl Archive Network), PEAR (PHP Extension and Application Repository), and RubyGems
+- Isaac Z. -> "seen module packaging done terribly"
+- 2009-2010: NPM was created by Isaac Z. Schlueter
+    - [first commit](https://github.com/npm/cli/commit/4626dfa73b7847e9c42c1f799935f8242794d020)
+- 2014: NPM, Inc. was founded
+- 2020: Microsfot-owned GitHub acquires npm, Inc.
+- as of ~2023: 3,342,873 packages
+
+
+## What's a Package Manager good for?
+- fundamental problem: how to get other people's code into your project?
+    - needs to be be repeatable
+    - needs to be reliable
+    - needs to provide version management
+
+## Other package managers
+
+- RubyGems
+- Maven
+- NuGet
+- Yarn
+- Bower
+- Cargo
+- Composer
+- Homebrew
+- Chocolatey
+- apt-get
+- yum
+
+## Pt. 1: Opening the NPM Black Box
+
+## so what's npm, really?
+- an immutable (mostly) database packages
+- a filesystem with a bunch of files/packages
+- a client that talks to the registry
+- a CLI give you the code you want, given a configuration
+
+## What's in a package?
+
+## 
+
+.image ./images/node_modules.webp _ 900
+
+
+## What's in a package?
+- two main parts: metadata and code
+- metadata: package.json etc.
+- code: the actual code in directories and files
+
+## what *is* a package?
+
+a. a folder containing a program described by a package.json file
+
+b. a gzipped tarball containing (a)
+
+c. a url that resolves to (b)
+
+d. a `<name>@<version>` that is published on the registry (see registry) with (c)
+
+e. a `<name>@<tag>` (see npm dist-tag) that points to (d)
+
+f. a `<name>` that has a "latest" tag satisfying (e)
+
+g. a `<git remote url>` that resolves to (a)
+
+
+## let's talk about semver first
+- https://semver.org/
+- all versioning is semantic, but not all versioning is consistent
+- major.minor.patch (1.2.3)
+- major: breaking changes
+- minor: new features
+- patch: bug fixes
+
+## major changes
+- 1.0.0
+
+    export function add(a: number, b: number): number {
+        return a + b;
+    }
+
+- 1.1.1
+
+    export function add(...numbers: number[]): number {
+        return numbers.reduce((sum, current) => sum + current, 0);
+    }
+
+    export function subtract(a: number, b: number): number {
+        return a - b;
+    }
+
+- 2.0.0
+    
+    export function add(a: string, b: string): number {
+        return parseInt(a, 10) + parseInt(b, 10);
+    }
+    
+
+## npm package versioning
+
+BNF for the range grammar is as follows:
+
+    range-set  ::= range ( logical-or range ) *
+    logical-or ::= ( ' ' ) * '||' ( ' ' ) *
+    range      ::= hyphen | simple ( ' ' simple ) * | ''
+    hyphen     ::= partial ' - ' partial
+    simple     ::= primitive | partial | tilde | caret
+    primitive  ::= ( '<' | '>' | '>=' | '<=' | '=' ) partial
+    partial    ::= xr ( '.' xr ( '.' xr qualifier ? )? )?
+    xr         ::= 'x' | 'X' | '*' | nr
+    nr         ::= '0' | ['1'-'9'] ( ['0'-'9'] ) *
+    tilde      ::= '~' partial
+    caret      ::= '^' partial
+    qualifier  ::= ( '-' pre )? ( '+' build )?
+    pre        ::= parts
+    build      ::= parts
+    parts      ::= part ( '.' part ) *
+    part       ::= nr | [-0-9A-Za-z]+
+
+## easy!
+
+## Examples:
+
+- `1.2.3` (exact version)
+- `>1.2.3` (greater than)
+- `>=1.2.3` (greater than or equal to)
+- `<1.2.3` (less than)
+- `<=1.2.3` (less than or equal to)
+- `~1.2.3` (compatible with 1.2.3)
+- `^1.2.3` (compatible with 1.2.3)
+- `1.2.x` (compatible with 1.2.x)
+- `1.x` (compatible with 1.x)
+- `*` (any version)
+- `1.2.3 - 2.3.4` (range)
+- `1.2.3 || >=2.5.0` (logical OR)
+- `latest` (latest version)
+
+## Less Tree, More Graph
+- npm packages are not a tree, but a graph
+- nodes are packages
+- edges are relationships between packages
+- for example: https://npmgraph.js.org/?q=express
+- two hard things that need to be solved: all the needed deps with as little duplication as possible
+- A tough, sometimes pseudo-impossible (NP-hard) problem
+
+## Sounds hard!
+
+## 
+
+- [yup](https://github.com/npm/cli/blob/latest/workspaces/arborist/docs/ideal-tree.md)
+- this is also, in part, why `node_modules` is so big
+
+## So... what happens at install?
+- Parsing package.json: npm/`arborist` reads dependencies and determines needs
+- Create the Dependency Tree: Constructs an "ideal tree" representing the optimal organization of dependencies.
+- Resolve Conflicts: Uses semantic versioning and deduplication strategies to resolve version conflicts.
+- Fetching Metadata: Gathers package information from the npm registry.
+- Finalizing the Tree: Optimizes the tree for minimal duplication and prepares for installation.
+- Write to disk: uses npm-fetch-registry/pacote to write tree to disk
+- [pacote](https://www.npmjs.com/package/pacote): "package" in Portugese; used to get stuff from the registry
+
+
+## Types of dependencies
+- dependencies: primary dependencies
+- devDependencies: things only needed for development
+- peerDependencies: things that need to be installed alongside the package
+- optionalDependencies: things that are optional (lol)
+- bundledDependencies: things that are bundled with the published package
+
+
+## Package.json: the other parts
+- name: the name of the package
+- version: the version of the package
+- description: a brief description of the package
+- keywords: an array of keywords
+- `main`: the entry point of the package
+- `bin`: tells npm if you have a binary/script to install into `PATH `
+
+
+## what about package-lock.json?
+- think of it as a snapshot of the tree at a point in time. 
+- if every version was exact, no need for package-lock.json, but this would be impractical & painful
+- e.g. `^1.2.3` means something different today than it did yesterday, and will mean something different tomorrow (maybe)
+- ensures reproducible installs
+- automatically generated when npm modifies either package.json or node_modules
+- there's a "hidden" lockfile in `node_modules`, used internally to speed up performance
+
+
+## npm install vs npm ci
+- npm install:
+    - installs all dependencies
+    - updates package.json and package-lock.json, depending on contents & time
+    - not determistic
+- npm ci:
+    - "clean install"
+    - _only_ uses package-lock.json
+    - does _not_ update package.json or package-lock.json
+    - use this in production
+
+## npm link
+- a way to link a package to a project
+- useful for local development
+- `npm link` in the package you want to link
+- `npm link <package-name>` in the project you want to link to
+- uses symlinks (symbolic links) to link the package to the project
+- confusingly, `npm unlink` is an alias for `npm uninstall`, so:
+
+    `npm uninstall --no-save some-dep && npm install`
+
+
+## Pt. 2: Stuff you can do with npm
+
+## get lots of code
+
+## The End!
+
+## jk
+
+## npm scripts
+- a way to run arbitrary commands
+- defined in package.json
+- can be run with `npm run` or `npm`
+
+> To create "pre" or "post" scripts for any scripts defined in the "scripts" section of the package.json, simply create another script with a matching name and add "pre" or "post" to the beginning of them.
+
+## npx
+- a tool to execute Node packages without installing them
+- can be used to run binaries from the registry
+- careful - can be a security risk
+
+## Shortcuts
+
+- `npm init` (prompts for package info)
+- `npm` init -y: intialize a package with defaults
+- `npm` run (list all scripts)
+- `npm run lint*`: run a script with a wildcard suffix
+- `npm` test (runs the test script)
+- `npm` t (runs the test script)
+
+## Shortcuts (cont.)
+- `npm docs <package-name>`
+- use npm environment variables to pass arguments to scripts
+- run commands based on git hooks with husky (`npm install -D husky`)
+- use `cross-env` for cross-platform environment variables (`npm install -D cross-env`)
+- Use script name of "//" for comments
+
+## Fun commands
+- `npx npkill` (find and remove node_modules directories)
+- `npx depcheck` (find and remove unused dependencies)
+- `npx unimported` (find and remove unused imports)
+- `npm prune` (remove extraneous packages)
+
+## More fun commands
+- `npm i eslint-{plugin-import,plugin-react,loader} express`
+- `npm i <package_name>` (install as dependency)
+- `npm i -D <package_name>` (install as dev dependency)
+- `npm i -g <package_name>` (install globally)
+
+## More command fun
+- run commands after one another: `&` `npm run lint && npm run test`
+- run commands in parallel: `&` `npm run lint && npm run test`
+- pass arguments to scripts: `--` `npm run build -- --watch`
+
+## Q&A
+
+## Sources
+- en.wikipedia.org/wiki/Npm
